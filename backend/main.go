@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -68,10 +70,28 @@ func GetRulesHandler(w http.ResponseWriter, r *http.Request) {
 
 // GenerateDraftHandler generates a report draft.
 func GenerateDraftHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO: Get parameters from request body
-	// TODO: Call Feishu API to get source reports
-	// TODO: Aggregate content (and optionally call an LLM)
-	// TODO: Return the draft
-	w.WriteHeader(http.StatusNotImplemented)
-	fmt.Fprint(w, "TODO: Implement Draft Generation")
+	// For now, we'll just simulate the draft generation
+	// This mimics the logic that was previously on the frontend
+
+	// In the future, we will parse the request to get the template ID
+	// and selected source reports.
+
+	// Simulate creating a response structure.
+	// This structure should match what the frontend expects.
+	// Based on the frontend code, it expects a map of field IDs to values.
+	draft := make(map[string]interface{})
+
+	// This is a simplified simulation. A real implementation would inspect
+	// the requested template and generate appropriate content.
+	draft["summary"] = fmt.Sprintf("<p>这是由Go后端为<b>工作总结</b>在 %s 生成的动态内容。</p>", time.Now().Format("15:04:05"))
+	draft["plan"] = fmt.Sprintf("<p>这是由Go后端为<b>下周计划</b>在 %s 生成的动态内容。</p>", time.Now().Format("15:04:05"))
+	draft["risk"] = "<p>后端生成：目前没有可见风险。</p>"
+	draft["kpi"] = "后端生成：完成了80%的后端开发任务。"
+	draft["achievements"] = "<p>后端生成：成功搭建了API框架。</p>"
+	draft["learnings"] = "<p>后端生成：学习了如何在Go中处理JSON。</p>"
+	draft["next_month_goals"] = "<p>后端生成：完成与飞书API的对接。</p>"
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(draft)
 }

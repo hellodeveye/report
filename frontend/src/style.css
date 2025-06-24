@@ -1,3 +1,19 @@
+body::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    radial-gradient(circle at 15% 50%, #6f7bf7 0%, transparent 25%),
+    radial-gradient(circle at 85% 30%, #4f5bce 0%, transparent 25%),
+    radial-gradient(circle at 60% 80%, #a855f7 0%, transparent 25%);
+  filter: blur(80px);
+  z-index: -1;
+  opacity: 0.5;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities; 
