@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # Backend Service (Go)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      # It's better to use an .env file for secrets
+      - REDIS_ADDR=redis:6379
+      - FEISHU_APP_ID=${FEISHU_APP_ID}
+      - FEISHU_APP_SECRET=${FEISHU_APP_SECRET}
+    depends_on:
+      - redis
+    networks:
+      - app-network
+
+  # Frontend Service (Vue + Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80" # We serve from Nginx's port 80 to host's 5173
+    networks:
+      - app-network
+    # In a real production setup with a domain, Nginx would handle routing.
+    # For local dev, Vite's proxy is often easier. If we were using Nginx
+    # to proxy, we'd mount a custom nginx.conf file here.
+
+  # Redis Service
+  redis:
+    image: "redis:alpine"
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  redis-data: 

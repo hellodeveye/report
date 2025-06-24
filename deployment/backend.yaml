@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+spec:
+  selector:
+    app: backend
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: your-repo/feishu-report-backend:latest # IMPORTANT: Replace with your actual image repository
+          ports:
+            - containerPort: 8080
+          env:
+            - name: REDIS_ADDR
+              value: "redis-service:6379"
+            - name: FEISHU_APP_ID
+              valueFrom:
+                secretKeyRef:
+                  name: feishu-secrets
+                  key: app_id
+            - name: FEISHU_APP_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: feishu-secrets
+                  key: app_secret
+# ---
+# NOTE: You must create the secret in your cluster first.
+# Example command:
+# kubectl create secret generic feishu-secrets --from-literal=app_id='your_id' --from-literal=app_secret='your_secret' 
