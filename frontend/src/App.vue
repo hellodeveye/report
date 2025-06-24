@@ -164,50 +164,55 @@ const getReports = () => {
 
 const generateDraft = () => {
   if (!currentTemplate.value) return;
+  isLoading.value = true;
 
-  const newValues = {};
-  currentTemplate.value.fields.forEach(field => {
-    const randomContent = `这是为"${field.label}"随机生成的内容。现在是 ${new Date().toLocaleTimeString()}。`;
-    switch (field.type) {
-      case 'tiptap':
-        newValues[field.id] = `<p>${randomContent}</p>`;
-        break;
-      case 'text':
-      case 'address':
-        newValues[field.id] = randomContent;
-        break;
-      case 'number':
-        newValues[field.id] = Math.floor(Math.random() * 5) + 1;
-        break;
-      case 'dropdown':
-        newValues[field.id] = field.options[Math.floor(Math.random() * field.options.length)].value;
-        break;
-      case 'multiSelect':
-        // Select 1 to N options randomly
-        newValues[field.id] = field.options
-          .filter(() => Math.random() > 0.5)
-          .map(opt => opt.value);
-        if (newValues[field.id].length === 0 && field.options.length > 0) {
-           newValues[field.id].push(field.options[0].value); // ensure at least one is selected
-        }
-        break;
-      case 'datetime':
-        newValues[field.id] = new Date(Date.now() + Math.random() * 1000 * 3600 * 24 * 7).toISOString().substring(0, 16);
-        break;
-      case 'image':
-      case 'attachment':
-        newValues[field.id] = [{
-          name: 'placeholder.png',
-          size: 818200,
-          url: 'https://template.tiptap.dev/images/placeholder-image.png',
-          id: Date.now()
-        }];
-        break;
-      default:
-        newValues[field.id] = '';
-    }
-  });
-  formValues.value = newValues;
+  setTimeout(() => {
+    const newValues = {};
+    currentTemplate.value.fields.forEach(field => {
+      const randomContent = `这是为"${field.label}"随机生成的内容。现在是 ${new Date().toLocaleTimeString()}。`;
+      switch (field.type) {
+        case 'tiptap':
+          newValues[field.id] = `<p>${randomContent}</p>`;
+          break;
+        case 'text':
+        case 'address':
+          newValues[field.id] = randomContent;
+          break;
+        case 'number':
+          newValues[field.id] = Math.floor(Math.random() * 5) + 1;
+          break;
+        case 'dropdown':
+          newValues[field.id] = field.options[Math.floor(Math.random() * field.options.length)].value;
+          break;
+        case 'multiSelect':
+          // Select 1 to N options randomly
+          newValues[field.id] = field.options
+            .filter(() => Math.random() > 0.5)
+            .map(opt => opt.value);
+          if (newValues[field.id].length === 0 && field.options.length > 0) {
+            newValues[field.id].push(field.options[0].value); // ensure at least one is selected
+          }
+          break;
+        case 'datetime':
+          newValues[field.id] = new Date(Date.now() + Math.random() * 1000 * 3600 * 24 * 7).toISOString().substring(0, 16);
+          break;
+        case 'image':
+        case 'attachment':
+          newValues[field.id] = [{
+            name: 'placeholder.png',
+            size: 818200,
+            url: 'https://template.tiptap.dev/images/placeholder-image.png',
+            id: Date.now()
+          }];
+          break;
+        default:
+          newValues[field.id] = '';
+      }
+    });
+    formValues.value = newValues;
+    isLoading.value = false;
+    addNotification('草稿已生成', '已为您填充好表单内容。', 'success');
+  }, 1000);
 };
 
 // Initialize form values when component mounts or template changes
@@ -281,10 +286,11 @@ const formatFileSize = (bytes) => {
 <template>
   <!-- Notifications container -->
   <div aria-live="assertive" class="pointer-events-none fixed inset-0 flex items-end px-4 py-6 sm:items-start sm:p-6 z-50">
-    <div class="flex w-full flex-col items-center space-y-4 sm:items-end">
+    <div class="flex w-full flex-col items-center sm:items-end">
       <transition-group
         name="notification"
         tag="div"
+        class="w-full space-y-4 flex flex-col items-center sm:items-end"
         enter-active-class="transform ease-out duration-300 transition"
         enter-from-class="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
         enter-to-class="translate-y-0 opacity-100 sm:translate-x-0"
@@ -317,7 +323,18 @@ const formatFileSize = (bytes) => {
   </div>
 
   <div class="min-h-screen w-full flex items-center justify-center p-4 bg-gray-900/10">
-    <div class="w-full max-w-screen-2xl h-[90vh] bg-white/60 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-white/30">
+    <div class="w-full max-w-screen-2xl h-[90vh] bg-white/60 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-white/30 relative">
+      
+      <!-- Loading Overlay -->
+      <div v-if="isLoading" class="absolute inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-50 rounded-2xl">
+        <div class="flex flex-col items-center">
+          <svg class="animate-spin -ml-1 mr-3 h-10 w-10 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span class="mt-4 text-white text-lg font-semibold">正在生成草稿...</span>
+        </div>
+      </div>
       
       <header class="flex-shrink-0 flex items-center justify-between border-b border-white/30 shadow-sm z-10 p-4">
         <h1 class="text-xl font-bold text-gray-800">飞书报告助手</h1>

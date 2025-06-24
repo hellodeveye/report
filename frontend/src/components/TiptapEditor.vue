@@ -35,7 +35,20 @@
       <!-- Lists and Images -->
       <button @click="editor.chain().focus().toggleBulletList().run()" :class="{ 'is-active': editor.isActive('bulletList') }" class="toolbar-button">列表</button>
       <button @click="addImage" class="toolbar-button">图片</button>
-
+      <div class="divider"></div>
+      <div class="relative">
+        <button @click="toggleAiDropdown" :disabled="editor.state.selection.empty" class="toolbar-button flex items-center">
+          AI 优化
+          <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </button>
+        <div v-if="isAiDropdownOpen" class="absolute z-10 mt-1 bg-white rounded-md shadow-lg border w-48 max-h-60 overflow-y-auto">
+          <ul class="py-1">
+            <li v-for="option in aiOptions" :key="option">
+              <a href="#" @click.prevent="applyAiAction(option)" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">{{ option }}</a>
+            </li>
+          </ul>
+        </div>
+      </div>
     </div>
     <EditorContent :editor="editor" />
   </div>
@@ -52,7 +65,7 @@ import Superscript from '@tiptap/extension-superscript';
 import TextAlign from '@tiptap/extension-text-align';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
-import { watch } from 'vue';
+import { watch, ref } from 'vue';
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -60,6 +73,13 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:modelValue']);
+
+const isAiDropdownOpen = ref(false);
+const aiOptions = [
+  '重构', '博客化', '提取要点', '改写', '缩短', '扩写',
+  '总结', '简化', '修正拼写', '继续写作', '使用激动语气',
+  '添加表情 🙂', '去除表情', '翻译成瑞典语', '翻译成德语', '一句话总结'
+];
 
 const editor = useEditor({
   content: props.modelValue,
@@ -83,6 +103,22 @@ const editor = useEditor({
     emit('update:modelValue', editor.value.getHTML());
   },
 });
+
+const toggleAiDropdown = () => {
+    if (editor.value.state.selection.empty) return;
+    isAiDropdownOpen.value = !isAiDropdownOpen.value;
+};
+
+const applyAiAction = (action) => {
+  isAiDropdownOpen.value = false;
+  const { from, to } = editor.value.state.selection;
+  const text = editor.value.state.doc.textBetween(from, to, ' ');
+
+  if (text) {
+    const optimizedText = `[${action}] ${text} ✨`;
+    editor.value.chain().focus().deleteRange({ from, to }).insertContent(optimizedText).run();
+  }
+};
 
 const setLink = () => {
   const previousUrl = editor.value.getAttributes('link').href;
