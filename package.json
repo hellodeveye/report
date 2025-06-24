@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "@tiptap/extension-placeholder": "^2.22.3",
-    "vue-tailwind-datepicker": "^1.7.3"
-  }
-}
