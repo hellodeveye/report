@@ -26,6 +26,8 @@ func SetupRoutes() *mux.Router {
 	api.HandleFunc("/auth/feishu/login", feishuHandler.Login).Methods("GET")
 	api.HandleFunc("/auth/feishu/callback", feishuHandler.Callback).Methods("GET")
 	api.HandleFunc("/rules", feishuHandler.GetRules).Methods("GET")
+	api.HandleFunc("/rules/detail", feishuHandler.GetRuleDetail).Methods("GET")
+	api.HandleFunc("/reports", feishuHandler.GetReports).Methods("GET")
 
 	// 报告生成路由
 	api.HandleFunc("/generate-draft", handlers.GenerateDraftHandler).Methods("POST")

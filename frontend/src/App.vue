@@ -1,62 +1,18 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
 import TiptapEditor from './components/TiptapEditor.vue';
+import TiptapViewer from './components/TiptapViewer.vue';
 import VueTailwindDatepicker from 'vue-tailwind-datepicker';
+import { feishuApiService, reportSummarizer, aiService } from './utils/aiService.js';
 
 // --- State Management ---
 
 const isAuthenticated = ref(true);
 const isLoading = ref(false);
 
-const templates = ref([
-  {
-    id: 'weekly',
-    name: '周报模板',
-    fields: [
-      { id: 'summary', label: '本周工作总结', type: 'tiptap', placeholder: '请输入本周工作总结...' },
-      { id: 'plan', label: '下周工作计划', type: 'tiptap', placeholder: '请输入下周工作计划...' },
-      { id: 'risk', label: '风险与建议', type: 'tiptap', placeholder: '请输入风险与建议...' },
-    ],
-  },
-  {
-    id: 'monthly',
-    name: '月报模板',
-    fields: [
-      { id: 'kpi', label: '本月关键绩效', type: 'text', placeholder: '请输入本月关键绩效...' },
-      { id: 'achievements', label: '主要成就和产出', type: 'tiptap', placeholder: '请输入主要成就和产出...' },
-      { id: 'learnings', label: '心得与反思', type: 'tiptap', placeholder: '请输入心得与反思...' },
-      { id: 'next_month_goals', label: '下月核心目标', type: 'tiptap', placeholder: '请输入下月核心目标...' },
-    ],
-  },
-  {
-    id: 'comprehensive',
-    name: '综合报告模板',
-    fields: [
-      { id: 'project_name', label: '项目名称', type: 'text', placeholder: '请输入项目名称...' },
-      { id: 'progress_rating', label: '项目进度 (1-5)', type: 'number', placeholder: '请输入1-5的数字' },
-      { id: 'status', label: '当前状态', type: 'dropdown', options: [
-          { value: 'on_track', text: '正常推进' },
-          { value: 'at_risk', text: '存在风险' },
-          { value: 'delayed', text: '已延期' },
-        ],
-      },
-      { id: 'stakeholders', label: '关键干系人', type: 'multiSelect', options: [
-          { value: 'product', text: '产品' },
-          { value: 'design', text: '设计' },
-          { value: 'dev', text: '开发' },
-          { value: 'qa', text: '测试' },
-        ],
-      },
-      { id: 'summary', label: '图文总结', type: 'tiptap', placeholder: '请输入图文总结...' },
-      { id: 'location', label: '办公地址', type: 'address', placeholder: '请输入详细地址...' },
-      { id: 'meeting_time', label: '下次会议时间', type: 'datetime' },
-      { id: 'screenshot', label: '效果图', type: 'image', maxCount: 99, maxSize: 20 * 1024 * 1024 }, // 20MB
-      { id: 'log_file', label: '日志文件', type: 'attachment', maxCount: 9, maxSize: 50 * 1024 * 1024 }, // 50MB
-    ],
-  },
-]);
-const selectedSourceTemplateId = ref('weekly');
-const selectedTemplateId = ref('comprehensive');
+const templates = ref([]);
+const selectedSourceTemplateId = ref('');
+const selectedTemplateId = ref('');
 const formValues = ref({});
 const fileInputRefs = ref({});
 const dateValue = ref({
@@ -67,14 +23,64 @@ const dateValue = ref({
 const isProfileMenuOpen = ref(false);
 const profileMenuNode = ref(null);
 const notifications = ref([]);
+const showApiKeyDialog = ref(false);
+const tempApiKey = ref('');
+const apiKeyDialogReason = ref('');
+const pendingAction = ref(null);
 
-onMounted(() => {
+onMounted(async () => {
   document.addEventListener('click', (event) => {
     if (profileMenuNode.value && !profileMenuNode.value.contains(event.target)) {
       isProfileMenuOpen.value = false;
     }
   });
+  
+  // 添加键盘事件监听器
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      if (showApiKeyDialog.value) {
+        cancelApiKeyDialog();
+      }
+    }
+  });
+  
+  // 加载模板列表
+  await loadTemplates();
 });
+
+// 加载模板列表
+const loadTemplates = async () => {
+  try {
+    isLoading.value = true;
+    const templatesData = await feishuApiService.getAllTemplates();
+    templates.value = templatesData;
+    
+    // 设置默认选中的模板
+    if (templatesData.length > 0) {
+      selectedSourceTemplateId.value = templatesData[0].id;
+      selectedTemplateId.value = templatesData[0].id;
+    }
+    
+    addNotification('模板加载成功', `成功加载${templatesData.length}个模板`, 'success');
+  } catch (error) {
+    console.error('加载模板失败:', error);
+    addNotification('模板加载失败', error.message, 'error');
+    
+    // 如果加载失败，使用固定的模板列表
+    const fixedTemplates = feishuApiService.getFixedTemplateList();
+    const fallbackTemplates = fixedTemplates.map(t => 
+      feishuApiService.getDefaultTemplate(t.id, t.name)
+    );
+    templates.value = fallbackTemplates;
+    
+    if (fallbackTemplates.length > 0) {
+      selectedSourceTemplateId.value = fallbackTemplates[0].id;
+      selectedTemplateId.value = fallbackTemplates[0].id;
+    }
+  } finally {
+    isLoading.value = false;
+  }
+};
 
 const removeNotification = (id) => {
   notifications.value = notifications.value.filter(n => n.id !== id);
@@ -89,26 +95,81 @@ const addNotification = (title, description = '', type = 'success', duration = 3
 };
 
 const datePickerShortcuts = () => {
-  const today = new Date();
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const last7Days = new Date();
-  last7Days.setDate(last7Days.getDate() - 6);
-  const last30Days = new Date();
-  last30Days.setDate(last30Days.getDate() - 29);
-  const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-  const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
-  const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-
   return [
-    { label: '今天', at: [today, today] },
-    { label: '昨天', at: [yesterday, yesterday] },
-    { label: '过去7天', at: [last7Days, today] },
-    { label: '过去30天', at: [last30Days, today] },
-    { label: '本月', at: [thisMonthStart, today] },
-    { label: '上个月', at: [lastMonthStart, lastMonthEnd] },
-  ]
-}
+    {
+      label: "今天",
+      atClick: () => {
+        const today = new Date();
+        return [today, today];
+      },
+    },
+    {
+      label: "昨天",
+      atClick: () => {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        return [yesterday, yesterday];
+      },
+    },
+    {
+      label: "本周",
+      atClick: () => {
+        const today = new Date();
+        const dayOfWeek = today.getDay();
+        const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        const thisWeekStart = new Date(today);
+        thisWeekStart.setDate(today.getDate() - diffToMonday);
+        return [thisWeekStart, today];
+      },
+    },
+    {
+      label: "上周",
+      atClick: () => {
+        const today = new Date();
+        const dayOfWeek = today.getDay();
+        const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        const thisWeekStart = new Date(today);
+        thisWeekStart.setDate(today.getDate() - diffToMonday);
+        const lastWeekEnd = new Date(thisWeekStart);
+        lastWeekEnd.setDate(thisWeekStart.getDate() - 1);
+        const lastWeekStart = new Date(lastWeekEnd);
+        lastWeekStart.setDate(lastWeekEnd.getDate() - 6);
+        return [lastWeekStart, lastWeekEnd];
+      },
+    },
+    {
+      label: "本月",
+      atClick: () => {
+        const today = new Date();
+        const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        return [thisMonthStart, today];
+      },
+    },
+    {
+      label: "上月",
+      atClick: () => {
+        const today = new Date();
+        const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+        const lastMonthStart = new Date(lastMonthEnd.getFullYear(), lastMonthEnd.getMonth(), 1);
+        return [lastMonthStart, lastMonthEnd];
+      },
+    },
+  ];
+};
+
+const datePickerOptions = ref({
+  shortcuts: {
+    today: "今天",
+    yesterday: "昨天",
+    past: (period) => `过去${period}天`,
+    currentMonth: "本月",
+    pastMonth: "上月",
+  },
+  footer: {
+    apply: "应用",
+    cancel: "取消",
+  },
+});
 
 const currentTemplate = computed(() => {
   return templates.value.find(t => t.id === selectedTemplateId.value);
@@ -123,96 +184,158 @@ const toggleReportDetail = (report) => {
     report.isCollapsed = !report.isCollapsed;
 };
 
-const getReports = () => {
-  sourceReports.value = [
-    { 
-      id: 'rep-comp-1', 
-      title: '综合报告示例 - Q2', 
-      isCollapsed: true,
-      fields: [
-        { name: '项目名称', value: '飞书报告助手', type: 'text' },
-        { name: '项目进度 (1-5)', value: 4, type: 'number' },
-        { name: '当前状态', value: '正常推进', type: 'dropdown' },
-        { name: '关键干系人', value: ['产品', '开发'], type: 'multiSelect' },
-        { name: '办公地址', value: '未来城A座-501', type: 'address' },
-        { name: '下次会议时间', value: '2025-08-01T10:00', type: 'datetime' },
-        { name: '效果图', value: [{ name: 'placeholder.png', size: 818200, url: 'https://template.tiptap.dev/images/placeholder-image.png' }], type: 'image' },
-        { name: '日志文件', value: [{ name: 'mindmap.png', size: 818200, url: 'https://template.tiptap.dev/images/placeholder-image.png' }], type: 'attachment' },
-        { name: '图文总结', value: '<p>这是富文本总结，包含图片。</p><img src="https://template.tiptap.dev/images/placeholder-image.png"/>', type: 'tiptap' },
-      ] 
-    },
-    { 
-      id: 'rep-2', 
-      title: '客户端团队周报 2024-07-01 ~ 2024-07-07', 
-      isCollapsed: true,
-      fields: [
-        { name: 'iOS端进展', value: '新版本已提交审核。' },
-        { name: 'Android端进展', value: '正在进行性能优化。' }
-      ]
-    },
-    { 
-      id: 'rep-3', 
-      title: '服务端架构升级讨论纪要', 
-      isCollapsed: true,
-      fields: [
-        { name: '讨论决议', value: '<li>采用微服务架构。</li><li>数据库方案选型为PostgreSQL。</li>' },
-        { name: '后续任务', value: '由王五负责输出详细设计文档。' }
-      ]
-    },
-  ];
+const getReports = async () => {
+  try {
+    isLoading.value = true;
+    
+    // 构建查询参数
+    const params = {};
+    
+    // 如果选择了源模板，添加模板过滤
+    if (selectedSourceTemplateId.value) {
+      params.rule_id = selectedSourceTemplateId.value;
+    }
+    
+    // 如果选择了日期范围，添加时间过滤
+    if (dateValue.value.startDate && dateValue.value.endDate) {
+      // 开始时间：当天的开始（00:00:00）
+      const startDate = new Date(dateValue.value.startDate);
+      params.start_time = Math.floor(startDate.getTime() / 1000);
+      
+      // 结束时间：当天的最晚时间（23:59:59）
+      const endDate = new Date(dateValue.value.endDate);
+      endDate.setHours(23, 59, 59, 999); // 设置为当天的最晚时间
+      params.end_time = Math.floor(endDate.getTime() / 1000);
+    }
+    
+    // 添加详细的调试日志
+    if (params.start_time && params.end_time) {
+      console.log('调用 /reports 接口，参数:', params);
+      console.log('时间范围:', {
+        startDate: dateValue.value.startDate,
+        endDate: dateValue.value.endDate,
+        startTime: new Date(params.start_time * 1000).toLocaleString(),
+        endTime: new Date(params.end_time * 1000).toLocaleString()
+      });
+    } else {
+      console.log('调用 /reports 接口，参数:', params);
+    }
+    
+    // 获取原始模板数据用于字段类型映射
+    const templateData = selectedSourceTemplateId.value ? 
+      feishuApiService.getRawRuleById(selectedSourceTemplateId.value) : null;
+    
+    const reportsData = await feishuApiService.getReports(params, templateData);
+    sourceReports.value = reportsData;
+    
+    addNotification('报告获取成功', `成功获取${reportsData.length}条报告`, 'success');
+  } catch (error) {
+    console.error('获取报告失败:', error);
+    addNotification('获取报告失败', error.message, 'error');
+    sourceReports.value = [];
+  } finally {
+    isLoading.value = false;
+  }
 };
 
-const generateDraft = () => {
+const generateDraft = async () => {
   if (!currentTemplate.value) return;
+  
+  // 检查 API Key - 生成草稿功能始终需要API Key
+  if (!aiService.hasApiKey()) {
+    openApiKeyDialog('ai_generate', () => generateDraft());
+    return;
+  }
+  
   isLoading.value = true;
-
-  setTimeout(() => {
-    const newValues = {};
-    currentTemplate.value.fields.forEach(field => {
-      const randomContent = `这是为"${field.label}"随机生成的内容。现在是 ${new Date().toLocaleTimeString()}。`;
-      switch (field.type) {
-        case 'tiptap':
-          newValues[field.id] = `<p>${randomContent}</p>`;
-          break;
-        case 'text':
-        case 'address':
-          newValues[field.id] = randomContent;
-          break;
-        case 'number':
-          newValues[field.id] = Math.floor(Math.random() * 5) + 1;
-          break;
-        case 'dropdown':
-          newValues[field.id] = field.options[Math.floor(Math.random() * field.options.length)].value;
-          break;
-        case 'multiSelect':
-          // Select 1 to N options randomly
-          newValues[field.id] = field.options
-            .filter(() => Math.random() > 0.5)
-            .map(opt => opt.value);
-          if (newValues[field.id].length === 0 && field.options.length > 0) {
-            newValues[field.id].push(field.options[0].value); // ensure at least one is selected
+  
+  // 检查是否有左侧报告数据
+  const hasSourceReports = sourceReports.value && sourceReports.value.length > 0;
+  
+  try {
+    if (hasSourceReports) {
+      
+      // 使用AI汇总生成草稿
+      addNotification('正在生成', '正在分析源报告并生成智能草稿...', 'success');
+      
+      const summary = await reportSummarizer.summarizeReports(
+        sourceReports.value,
+        currentTemplate.value
+      );
+      
+      formValues.value = summary;
+      addNotification('AI草稿已生成', '已基于左侧报告内容智能生成草稿', 'success');
+    } else {
+      // 没有源报告时，使用AI生成通用草稿
+      addNotification('正在生成', '正在生成AI智能草稿...', 'success');
+      
+      const newValues = {};
+      
+      // 为每个字段生成AI内容
+      for (const field of currentTemplate.value.fields) {
+        try {
+          if (field.type === 'tiptap' || field.type === 'text' || field.type === 'address') {
+            // 对文本类型字段使用AI生成
+            const prompt = `请为"${field.label}"字段生成合适的${currentTemplate.value.name}内容。要求：
+1. 内容专业且实用
+2. 符合工作报告的语气
+3. 字数控制在50-200字之间
+4. ${field.type === 'tiptap' ? '使用HTML格式' : '纯文本格式'}`;
+            
+            const content = await aiService.streamProcess(
+              prompt,
+              `字段名称：${field.label}`,
+              null,
+              { stream: false }
+            );
+            
+            newValues[field.id] = content || `请填写${field.label}`;
+          } else if (field.type === 'number') {
+            newValues[field.id] = Math.floor(Math.random() * 5) + 1;
+          } else if (field.type === 'dropdown') {
+            if (field.options && field.options.length > 0) {
+              newValues[field.id] = field.options[Math.floor(Math.random() * field.options.length)].value;
+            } else {
+              newValues[field.id] = '';
+            }
+          } else if (field.type === 'multiSelect') {
+            if (field.options && field.options.length > 0) {
+              newValues[field.id] = field.options
+                .filter(() => Math.random() > 0.5)
+                .map(opt => opt.value);
+              if (newValues[field.id].length === 0) {
+                newValues[field.id].push(field.options[0].value);
+              }
+            } else {
+              newValues[field.id] = [];
+            }
+          } else if (field.type === 'datetime') {
+            newValues[field.id] = new Date(Date.now() + Math.random() * 1000 * 3600 * 24 * 7).toISOString().substring(0, 16);
+          } else if (field.type === 'image' || field.type === 'attachment') {
+            newValues[field.id] = [{
+              name: 'placeholder.png',
+              size: 818200,
+              url: 'https://template.tiptap.dev/images/placeholder-image.png',
+              id: Date.now()
+            }];
+          } else {
+            newValues[field.id] = '';
           }
-          break;
-        case 'datetime':
-          newValues[field.id] = new Date(Date.now() + Math.random() * 1000 * 3600 * 24 * 7).toISOString().substring(0, 16);
-          break;
-        case 'image':
-        case 'attachment':
-          newValues[field.id] = [{
-            name: 'placeholder.png',
-            size: 818200,
-            url: 'https://template.tiptap.dev/images/placeholder-image.png',
-            id: Date.now()
-          }];
-          break;
-        default:
-          newValues[field.id] = '';
+        } catch (error) {
+          console.warn(`生成字段 ${field.label} 失败:`, error);
+          newValues[field.id] = `请填写${field.label}`;
+        }
       }
-    });
-    formValues.value = newValues;
+      
+      formValues.value = newValues;
+      addNotification('AI草稿已生成', '已生成AI智能草稿，您可以根据需要进行修改', 'success');
+    }
+  } catch (error) {
+    console.error('生成草稿失败:', error);
+    addNotification('生成失败', error.message, 'error');
+  } finally {
     isLoading.value = false;
-    addNotification('草稿已生成', '已为您填充好表单内容。', 'success');
-  }, 1000);
+  }
 };
 
 // Initialize form values when component mounts or template changes
@@ -281,6 +404,50 @@ const formatFileSize = (bytes) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
+// API Key 相关方法
+const openApiKeyDialog = (reason = '', action = null) => {
+  isProfileMenuOpen.value = false; // 关闭菜单
+  showApiKeyDialog.value = true;
+  apiKeyDialogReason.value = reason;
+  pendingAction.value = action;
+  // 如果已有API Key，显示部分内容
+  if (aiService.hasApiKey()) {
+    tempApiKey.value = aiService.getApiKey().substring(0, 10) + '...';
+  } else {
+    tempApiKey.value = '';
+  }
+};
+
+const saveApiKey = () => {
+  if (tempApiKey.value.trim()) {
+    aiService.setApiKey(tempApiKey.value.trim());
+    addNotification('API Key 已保存', '已成功保存 DeepSeek API Key，现在可以使用AI功能了！', 'success');
+    
+    // 保存待执行的操作
+    const actionToExecute = pendingAction.value;
+    
+    // 清理状态
+    showApiKeyDialog.value = false;
+    tempApiKey.value = '';
+    apiKeyDialogReason.value = '';
+    pendingAction.value = null;
+    
+    // 执行待执行的操作
+    if (actionToExecute && typeof actionToExecute === 'function') {
+      setTimeout(() => {
+        actionToExecute();
+      }, 100); // 短暂延迟确保对话框已关闭
+    }
+  }
+};
+
+const cancelApiKeyDialog = () => {
+  showApiKeyDialog.value = false;
+  tempApiKey.value = '';
+  apiKeyDialogReason.value = '';
+  pendingAction.value = null;
+};
+
 </script>
 
 <template>
@@ -312,7 +479,7 @@ const formatFileSize = (bytes) => {
               <div class="ml-4 flex flex-shrink-0">
                 <button @click="removeNotification(notification.id)" type="button" class="inline-flex rounded-md bg-white/0 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                   <span class="sr-only">Close</span>
-                  <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" /></svg>
+                  <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.414 1.414L10 11.06l3.72 3.72a.75.75 0 101.414-1.414L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" /></svg>
                 </button>
               </div>
             </div>
@@ -365,6 +532,11 @@ const formatFileSize = (bytes) => {
             >
               <div v-if="isProfileMenuOpen" class="absolute right-0 mt-2 w-48 bg-white/80 backdrop-blur-sm rounded-md shadow-lg py-1 z-20 border border-white/30">
                 <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white/50">个人资料</a>
+                <a href="#" @click.prevent="openApiKeyDialog" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white/50 flex items-center justify-between">
+                  <span>API Key配置</span>
+                  <span v-if="aiService.hasApiKey()" class="text-green-500 text-xs">●</span>
+                  <span v-else class="text-gray-400 text-xs">●</span>
+                </a>
                 <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white/50">设置</a>
                 <div class="border-t border-gray-200/50"></div>
                 <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white/50">退出登录</a>
@@ -395,6 +567,8 @@ const formatFileSize = (bytes) => {
                       i18n="zh-cn"
                       placeholder="选择日期范围"
                       :shortcuts="datePickerShortcuts"
+                      :options="datePickerOptions"
+                      :auto-apply="true"
                       class="mt-1 w-full"
                   />
                 </div>
@@ -407,15 +581,15 @@ const formatFileSize = (bytes) => {
                     </select>
                 </div>
                 <div class="md:col-span-2 flex space-x-2 items-end">
-                  <button @click="getReports" class="w-full px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-white/20 text-gray-700 backdrop-blur-sm border border-white/30 shadow-lg hover:bg-white/30 hover:text-gray-900 focus:outline-none">
+                  <button @click="getReports" class="w-full px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-white/30 text-gray-800 backdrop-blur-sm border border-white/40 shadow-lg hover:bg-white/50 hover:text-gray-900 focus:outline-none">
                     获取报告
                   </button>
                   <button @click="generateDraft" class="w-full px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-indigo-500/20 text-indigo-800 backdrop-blur-sm border border-indigo-500/30 shadow-lg hover:bg-indigo-500/40 hover:text-indigo-900 focus:outline-none">
                     生成草稿
                   </button>
-                  <button @click="addNotification('发送成功', '报告已提交，请在飞书中查收。')" class="w-full px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-blue-500/20 text-blue-800 backdrop-blur-sm border border-blue-500/30 shadow-lg hover:bg-blue-500/40 hover:text-blue-900 focus:outline-none">
+                  <!-- <button @click="addNotification('发送成功', '报告已提交，请在飞书中查收。')" class="w-full px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-blue-500/20 text-blue-800 backdrop-blur-sm border border-blue-500/30 shadow-lg hover:bg-blue-500/40 hover:text-blue-900 focus:outline-none">
                     发送到飞书
-                  </button>
+                  </button> -->
                 </div>
             </div>
         </section>
@@ -423,9 +597,9 @@ const formatFileSize = (bytes) => {
         <div class="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4 p-4 overflow-hidden">
             <!-- Left Column: Source Reports -->
             <section class="bg-white/50 backdrop-blur-sm rounded-lg shadow-md flex flex-col overflow-hidden border border-white/20">
-                <h2 class="text-lg font-semibold p-4 border-b border-white/20">源报告</h2>
+                <h2 class="text-lg font-semibold p-4 border-b border-white/20">报告内容</h2>
                 <div class="overflow-y-auto flex-grow p-4 space-y-2">
-                    <div v-if="sourceReports.length === 0" class="text-gray-500 text-center pt-10">源报告将在此处显示。</div>
+                    <div v-if="sourceReports.length === 0" class="text-gray-500 text-center pt-10">报告内容将在此处显示。</div>
                     <div v-for="report in sourceReports" :key="report.id" class="border rounded-md">
                         <div @click="toggleReportDetail(report)" class="p-3 flex justify-between items-center cursor-pointer hover:bg-gray-50">
                             <h3 class="font-semibold">{{ report.title }}</h3>
@@ -436,19 +610,21 @@ const formatFileSize = (bytes) => {
                               <b class="text-gray-700">{{ field.name }}:</b>
                               
                               <div v-if="field.type === 'image'" class="mt-2 grid grid-cols-4 gap-2">
-                                  <div v-for="file in field.value" :key="file.name" class="relative">
+                                  <div v-for="file in (field.value || [])" :key="file.name" class="relative">
                                     <img :src="file.url" alt="图片预览" class="w-full h-auto rounded-md shadow-md border border-gray-200" />
                                   </div>
                               </div>
                               <div v-else-if="field.type === 'attachment'" class="mt-1 space-y-2">
-                                  <div v-for="file in field.value" :key="file.name">
+                                  <div v-for="file in (field.value || [])" :key="file.name">
                                       <a :href="file.url" target="_blank" class="text-indigo-600 hover:underline">{{ file.name }} ({{ formatFileSize(file.size) }})</a>
                                   </div>
                               </div>
                               <div v-else-if="field.type === 'multiSelect'" class="inline-flex flex-wrap gap-2 mt-1">
-                                <span v-for="item in field.value" :key="item" class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-xs">{{ item }}</span>
+                                <span v-for="item in (field.value || [])" :key="item" class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-xs">{{ item }}</span>
                               </div>
-                              <div v-else-if="field.type === 'tiptap'" class="mt-1 border rounded-md p-2 bg-gray-50/50" v-html="field.value"></div>
+                              <div v-else-if="field.type === 'tiptap'" class="mt-1">
+                                <TiptapViewer :content="field.value" />
+                              </div>
                               <span v-else class="ml-2 text-gray-800">{{ field.value }}</span>
                           </div>
                         </div>
@@ -458,13 +634,16 @@ const formatFileSize = (bytes) => {
 
             <!-- Right Column: Generated Form -->
             <section class="bg-white/50 backdrop-blur-sm rounded-lg shadow-md flex flex-col overflow-hidden border border-white/20">
-                 <h2 class="text-lg font-semibold p-4 border-b border-white/20">生成的草稿表单</h2>
+                 <h2 class="text-lg font-semibold p-4 border-b border-white/20">{{ currentTemplate?.name || '生成的草稿' }}</h2>
                  <div class="flex-grow overflow-y-auto p-4 space-y-4">
-                    <div v-if="currentTemplate" v-for="field in currentTemplate.fields" :key="field.id" class="space-y-2">
+                    <div v-if="currentTemplate" v-for="field in (currentTemplate.fields || [])" :key="field.id" class="space-y-2">
                         <label :for="field.id" class="font-semibold text-gray-700">{{ field.label }}</label>
                         
                         <!-- Rich Text -->
-                        <TiptapEditor v-if="field.type === 'tiptap'" v-model="formValues[field.id]" :placeholder="field.placeholder" />
+                        <TiptapEditor v-if="field.type === 'tiptap'" 
+                                      v-model="formValues[field.id]" 
+                                      :placeholder="field.placeholder" 
+                                      @showApiKeyConfig="(reason) => openApiKeyDialog(reason)" />
                         
                         <!-- Number -->
                         <input v-else-if="field.type === 'number'" :id="field.id" type="number" v-model.number="formValues[field.id]" :placeholder="field.placeholder" class="form-input" />
@@ -472,12 +651,12 @@ const formatFileSize = (bytes) => {
                         <!-- Dropdown -->
                         <select v-else-if="field.type === 'dropdown'" :id="field.id" v-model="formValues[field.id]" class="form-input">
                             <option disabled value="">请选择</option>
-                            <option v-for="opt in field.options" :key="opt.value" :value="opt.value">{{ opt.text }}</option>
+                            <option v-for="opt in (field.options || [])" :key="opt.value" :value="opt.value">{{ opt.text }}</option>
                         </select>
 
                         <!-- Multi-Select Checkboxes -->
                         <div v-else-if="field.type === 'multiSelect'" class="flex flex-wrap gap-x-4 gap-y-2 pt-1">
-                           <label v-for="opt in field.options" :key="opt.value" class="flex items-center space-x-2 cursor-pointer">
+                           <label v-for="opt in (field.options || [])" :key="opt.value" class="flex items-center space-x-2 cursor-pointer">
                              <input type="checkbox" :value="opt.value" v-model="formValues[field.id]" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
                              <span>{{ opt.text }}</span>
                            </label>
@@ -492,7 +671,7 @@ const formatFileSize = (bytes) => {
                         <!-- Image Uploader -->
                         <div v-else-if="field.type === 'image'">
                            <div class="grid grid-cols-5 gap-4">
-                              <div v-for="file in formValues[field.id]" :key="file.id" class="relative w-24 h-24">
+                              <div v-for="file in (formValues[field.id] || [])" :key="file.id" class="relative w-24 h-24">
                                 <img :src="file.url" :alt="file.name" class="w-full h-full object-cover rounded-lg shadow-md">
                                 <button @click="removeFile(field.id, file.id)" class="absolute -top-1 -right-1 bg-gray-700 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs">&times;</button>
                               </div>
@@ -509,7 +688,7 @@ const formatFileSize = (bytes) => {
                            <button @click="triggerFileInput(field.id)" class="px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md hover:bg-gray-50/50">+ 添加附件</button>
                            <p class="text-xs text-gray-500 mt-2">单个附件不超过 {{ formatFileSize(field.maxSize) }}，最多上传 {{ field.maxCount }} 个</p>
                            <div class="mt-4 space-y-2">
-                              <div v-for="file in formValues[field.id]" :key="file.id" class="flex items-center justify-between p-2 bg-gray-100/80 rounded-md">
+                              <div v-for="file in (formValues[field.id] || [])" :key="file.id" class="flex items-center justify-between p-2 bg-gray-100/80 rounded-md">
                                  <div class="flex items-center space-x-2">
                                     <svg class="h-6 w-6 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path></svg>
                                     <div>
@@ -532,6 +711,50 @@ const formatFileSize = (bytes) => {
             </section>
         </div>
       </main>
+    </div>
+  </div>
+
+  <!-- API Key Configuration Dialog -->
+  <div v-if="showApiKeyDialog" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-96 mx-4">
+      <h3 class="text-lg font-bold mb-4">配置 DeepSeek API Key</h3>
+      <div class="mb-4">
+        <div v-if="apiKeyDialogReason === 'ai_generate'" class="bg-blue-50 border border-blue-200 rounded-md p-3 mb-3">
+          <p class="text-sm text-blue-800">
+            🤖 您正在使用AI智能生成草稿功能，需要配置 DeepSeek API Key 才能继续。无论是否有源报告数据，AI都会为您生成专业的内容。
+          </p>
+        </div>
+        <div v-else-if="apiKeyDialogReason === 'ai_text_optimize'" class="bg-green-50 border border-green-200 rounded-md p-3 mb-3">
+          <p class="text-sm text-green-800">
+            ✨ 您正在使用AI文本优化功能，需要配置 DeepSeek API Key 才能继续。
+          </p>
+        </div>
+        <p class="text-sm text-gray-600 mb-3">
+          请输入你的 DeepSeek API Key，用于启用AI功能。
+        </p>
+        <p class="text-sm text-gray-600 mb-3">
+          如果你还没有 API Key，请前往 
+          <a href="https://platform.deepseek.com/" target="_blank" class="text-blue-500 hover:underline">DeepSeek 控制台</a> 
+          获取。
+        </p>
+        <input 
+          v-model="tempApiKey" 
+          type="password" 
+          placeholder="请输入 DeepSeek API Key"
+          class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          @keyup.enter="saveApiKey"
+        />
+      </div>
+      <div class="flex justify-end space-x-3">
+        <button @click="cancelApiKeyDialog" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors">
+          取消
+        </button>
+        <button @click="saveApiKey" 
+                class="px-4 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors" 
+                :disabled="!tempApiKey.trim()">
+          保存
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -558,4 +781,38 @@ const formatFileSize = (bytes) => {
   background-color: rgba(255, 255, 255, 0.8) !important;
 }
 
+/* Custom override for Today's date border */
+.vtd-today:not(.vtd-start-date):not(.vtd-end-date) span {
+  border: 1px solid #F97316 !important; /* orange-500 */
+}
+
+/* Custom scrollbar styles */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 #F1F5F9;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #F1F5F9;
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 4px;
+  border: 1px solid #F1F5F9;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+*::-webkit-scrollbar-corner {
+  background: #F1F5F9;
+}
 </style> 

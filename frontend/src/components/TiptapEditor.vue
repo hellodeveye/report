@@ -1,6 +1,6 @@
 <template>
-  <div class="border border-gray-300 rounded-lg relative">
-    <div v-if="editor" class="flex items-center flex-wrap p-2 border-b bg-gray-50 rounded-t-lg">
+  <div class="border border-gray-200 rounded-lg relative">
+    <div v-if="editor" class="flex items-center flex-wrap p-2 border-b border-gray-200 bg-gray-50 rounded-t-lg">
       <!-- History -->
       <button @click="editor.chain().focus().undo().run()" :disabled="!editor.can().undo()" class="toolbar-button">撤销</button>
       <button @click="editor.chain().focus().redo().run()" :disabled="!editor.can().redo()" class="toolbar-button">重做</button>
@@ -42,7 +42,7 @@
           AI 优化
           <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
         </button>
-        <div v-if="isAiDropdownOpen" class="absolute z-10 mt-1 bg-white rounded-md shadow-lg border w-64 max-h-60 overflow-y-auto">
+        <div v-if="isAiDropdownOpen" class="absolute z-10 mt-1 bg-white rounded-md border border-gray-200 w-64 max-h-60 overflow-y-auto">
           <ul class="py-1">
             <li v-for="option in aiOptions" :key="option">
               <a href="#" @click.prevent="applyAiAction(option)" 
@@ -57,50 +57,23 @@
         </div>
       </div>
       
-      <!-- API Key Config Button -->
-      <div class="divider"></div>
-      <button @click="showApiKeyDialog = true" class="toolbar-button text-xs">
-        🔑 API
-      </button>
+
     </div>
     <EditorContent :editor="editor" />
     
     <!-- AI 生成状态提示 -->
-    <div v-if="isAiProcessing" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-50">
-      <div class="ai-generating-indicator">
+    <div v-if="isAiProcessing" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
+      <div class="flex items-center space-x-2 bg-white border border-gray-200 rounded-full px-3 py-1 shadow-sm">
         <div class="flex space-x-1">
           <div class="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce opacity-90"></div>
           <div class="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce opacity-90" style="animation-delay: 0.1s"></div>
           <div class="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce opacity-90" style="animation-delay: 0.2s"></div>
         </div>
-        <span class="text-indigo-800 text-sm font-medium">AI 生成中...</span>
+        <span class="text-gray-600 text-sm font-medium">AI 生成中...</span>
       </div>
     </div>
     
-    <!-- API Key Dialog -->
-    <div v-if="showApiKeyDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 w-96">
-        <h3 class="text-lg font-bold mb-4">配置 DeepSeek API Key</h3>
-        <div class="mb-4">
-          <p class="text-sm text-gray-600 mb-2">
-            请输入你的 DeepSeek API Key。如果你还没有 API Key，请前往 
-            <a href="https://platform.deepseek.com/" target="_blank" class="text-blue-500 hover:underline">DeepSeek 控制台</a> 
-            获取。
-          </p>
-          <input 
-            v-model="tempApiKey" 
-            type="password" 
-            placeholder="请输入 DeepSeek API Key"
-            class="w-full p-2 border rounded"
-            @focus="checkApiKeyStatus"
-          />
-        </div>
-        <div class="flex justify-end space-x-2">
-          <button @click="showApiKeyDialog = false" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">取消</button>
-          <button @click="saveApiKey" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600" :disabled="!tempApiKey.trim()">保存</button>
-        </div>
-      </div>
-    </div>
+
   </div>
 </template>
 
@@ -123,12 +96,10 @@ const props = defineProps({
   placeholder: { type: String, default: '请输入...' },
 });
 
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue', 'showApiKeyConfig']);
 
 const isAiDropdownOpen = ref(false);
 const isAiProcessing = ref(false);
-const showApiKeyDialog = ref(false);
-const tempApiKey = ref('');
 
 const aiOptions = Object.keys(AI_PROMPTS);
 
@@ -160,18 +131,7 @@ const toggleAiDropdown = () => {
     isAiDropdownOpen.value = !isAiDropdownOpen.value;
 };
 
-const saveApiKey = () => {
-  aiService.setApiKey(tempApiKey.value);
-  showApiKeyDialog.value = false;
-  tempApiKey.value = '';
-};
 
-// 检查当前 API Key 状态
-const checkApiKeyStatus = () => {
-  if (aiService.hasApiKey()) {
-    tempApiKey.value = aiService.getApiKey().substring(0, 10) + '...';
-  }
-};
 
 const applyAiAction = async (action) => {
   if (isAiProcessing.value) return;
@@ -201,68 +161,90 @@ const applyAiAction = async (action) => {
 
     // 检查 API Key
     if (!aiService.hasApiKey()) {
-      alert('请先配置 DeepSeek API Key');
-      showApiKeyDialog.value = true;
+      emit('showApiKeyConfig', 'ai_text_optimize');
       return;
     }
 
-    // 获取完整的AI处理结果，不进行流式替换
+    let hasStartedReplacing = false;
+    let currentPosition = originalSelection.from;
+    
+    // 流式处理，实时更新编辑器内容
     const result = await aiService.streamProcess(
       promptConfig.prompt,
       selectedText,
-      // 流式回调只用于显示进度，不修改编辑器内容
+      // 流式回调，实时插入内容
       (chunk, accumulatedText) => {
-        // 这里可以添加进度显示逻辑，但不修改编辑器
-        // console.log('AI生成进度:', accumulatedText.length);
+        if (chunk && chunk.trim()) {
+          // 如果这是第一次接收到内容，先删除选中的文本
+          if (!hasStartedReplacing) {
+            editor.value.chain()
+              .focus()
+              .setTextSelection({ from: originalSelection.from, to: originalSelection.to })
+              .deleteSelection()
+              .run();
+            hasStartedReplacing = true;
+            currentPosition = originalSelection.from;
+          }
+          
+          // 在当前位置插入新的chunk
+          editor.value.chain()
+            .focus()
+            .setTextSelection({ from: currentPosition, to: currentPosition })
+            .insertContent(chunk)
+            .run();
+          
+          // 更新当前位置
+          currentPosition += chunk.length;
+        }
       }
     );
 
-    // 只在最终完成时进行一次替换
-    if (result && result.trim()) {
-      // 重新验证选择范围是否仍然有效
-      const currentDoc = editor.value.state.doc;
-      const docSize = currentDoc.content.size;
-      
-      // 确保原始选择范围仍然有效
-      if (originalSelection.from < docSize && originalSelection.to <= docSize) {
+    // 流式完成后的最终处理
+    if (!result || !result.trim()) {
+      if (hasStartedReplacing) {
+        // 如果已经开始替换但失败了，恢复原始文本
         editor.value.chain()
           .focus()
-          .setTextSelection({ from: originalSelection.from, to: originalSelection.to })
-          .insertContent(result)
+          .setTextSelection({ from: originalSelection.from, to: currentPosition })
+          .insertContent(selectedText)
           .run();
+        alert('AI 处理失败，已恢复原文本');
       } else {
-        // 如果原始选择范围已失效，在文档末尾插入
-        editor.value.chain()
-          .focus()
-          .setTextSelection({ from: docSize, to: docSize })
-          .insertContent(`\n${result}`)
-          .run();
-        alert('原始选择位置已变化，AI结果已添加到文档末尾');
+        // 如果还没有开始替换就失败了，原文本仍然存在，只需提示
+        alert('AI 处理失败，原文本保持不变');
       }
-    } else {
-      alert('AI 处理失败，原文本保持不变');
     }
 
   } catch (error) {
     console.error('AI 处理错误:', error);
     
-    // 发生错误时，原文本保持完全不变
-    // 只需要确保选择状态正确
+    // 发生错误时的处理
     try {
-      const currentDoc = editor.value.state.doc;
-      const docSize = currentDoc.content.size;
-      
-      if (originalSelection.from < docSize && originalSelection.to <= docSize) {
+      if (hasStartedReplacing) {
+        // 如果已经开始替换但出错了，尝试恢复原始文本
         editor.value.chain()
           .focus()
-          .setTextSelection({ from: originalSelection.from, to: originalSelection.to })
+          .setTextSelection({ from: originalSelection.from, to: currentPosition })
+          .insertContent(selectedText)
           .run();
+        alert(`AI 处理失败，已恢复原文本: ${error.message}`);
+      } else {
+        // 如果还没开始替换就出错了，只需要确保选择状态正确
+        const currentDoc = editor.value.state.doc;
+        const docSize = currentDoc.content.size;
+        
+        if (originalSelection.from < docSize && originalSelection.to <= docSize) {
+          editor.value.chain()
+            .focus()
+            .setTextSelection({ from: originalSelection.from, to: originalSelection.to })
+            .run();
+        }
+        alert(`AI 处理失败: ${error.message}`);
       }
     } catch (e) {
-      console.error('恢复选择状态时出错:', e);
+      console.error('错误处理时出错:', e);
+      alert(`AI 处理失败: ${error.message}`);
     }
-    
-    alert(`AI 处理失败: ${error.message}`);
   } finally {
     isAiProcessing.value = false;
   }
@@ -297,12 +279,12 @@ watch(() => props.modelValue, (newValue) => {
 .toolbar-button {
     @apply px-2 py-1 text-sm rounded transition-colors duration-200 m-0.5;
 }
-.toolbar-button:hover { @apply bg-gray-200; }
-.is-active { @apply bg-gray-300 text-black; }
+.toolbar-button:hover { @apply bg-gray-100; }
+.is-active { @apply bg-blue-500 text-white; }
 .toolbar-button:disabled { @apply opacity-40 cursor-not-allowed; }
 
 .divider {
-    @apply w-px h-5 bg-gray-300 mx-2;
+    @apply w-px h-5 bg-gray-200 mx-2;
 }
 .tiptap { min-height: 150px; }
 
@@ -339,43 +321,5 @@ watch(() => props.modelValue, (newValue) => {
 
 .animate-bounce {
   animation: bounce 1s infinite;
-}
-
-.ai-generating-indicator {
-  background: rgba(99, 102, 241, 0.2);
-  backdrop-filter: blur(16px) saturate(180%);
-  border-radius: 20px;
-  padding: 6px 12px;
-  box-shadow: 
-    0 2px 4px rgba(99, 102, 241, 0.1),
-    0 1px 2px rgba(99, 102, 241, 0.06);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.2s ease;
-  position: relative;
-  min-width: fit-content;
-}
-
-
-
-.ai-generating-indicator::after {
-  content: '';
-  position: absolute;
-  top: 1px;
-  left: 1px;
-  right: 1px;
-  height: 50%;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.05), transparent);
-  border-radius: 19px 19px 10px 10px;
-  pointer-events: none;
-}
-
-.ai-generating-indicator:hover {
-  background: rgba(99, 102, 241, 0.4);
-  transform: translateY(-0.5px);
-  box-shadow: 
-    0 4px 8px rgba(99, 102, 241, 0.15),
-    0 2px 4px rgba(99, 102, 241, 0.1);
 }
 </style> 

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/hellodeveye/report/internal/config"
@@ -35,7 +36,7 @@ func NewFeishuHandler() *FeishuHandler {
 }
 
 // GetRules 获取报告规则
-func (h *FeishuHandler) GetRules(w http.ResponseWriter, r *http.Request) {
+func (h *FeishuHandler) GetRuleDetail(w http.ResponseWriter, r *http.Request) {
 	// 创建请求对象
 	req := larkreport.NewQueryRuleReqBuilder().
 		RuleName(`test-日报模版`).
@@ -61,6 +62,89 @@ func (h *FeishuHandler) GetRules(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("编码响应失败: %v", err), http.StatusInternalServerError)
 		return
 	}
+}
+
+// GetRules 获取报告规则
+func (h *FeishuHandler) GetRules(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	// 创建请求对象
+	req := larkreport.NewQueryRuleReqBuilder().
+		RuleName(name).
+		IncludeDeleted(0).
+		UserIdType(`open_id`).
+		Build()
+
+	// 发起请求
+	resp, err := h.client.Report.V1.Rule.Query(context.Background(), req)
+
+	// 处理错误
+	if err != nil {
+		http.Error(w, fmt.Sprintf("查询规则失败: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// 设置响应头
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	// 返回响应
+	if err := json.NewEncoder(w).Encode(resp.Data.Rules); err != nil {
+		http.Error(w, fmt.Sprintf("编码响应失败: %v", err), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *FeishuHandler) GetReports(w http.ResponseWriter, r *http.Request) {
+	ruleId := r.URL.Query().Get("rule_id")
+	startTime := r.URL.Query().Get("start_time")
+	endTime := r.URL.Query().Get("end_time")
+
+	// 解析时间戳
+	var startTimeInt, endTimeInt int
+	if startTime != "" {
+		if parsed, err := strconv.ParseInt(startTime, 10, 64); err == nil {
+			startTimeInt = int(parsed)
+		}
+	}
+	if endTime != "" {
+		if parsed, err := strconv.ParseInt(endTime, 10, 64); err == nil {
+			endTimeInt = int(parsed)
+		}
+	}
+
+	// 创建请求对象
+	req := larkreport.NewQueryTaskReqBuilder().
+		UserIdType(`open_id`).
+		Body(larkreport.NewQueryTaskReqBodyBuilder().
+			CommitStartTime(startTimeInt).
+			CommitEndTime(endTimeInt).
+			RuleId(ruleId).
+			PageSize(10).
+			PageToken("").
+			Build()).
+		Build()
+
+	// 发起请求
+	resp, err := h.client.Report.V1.Task.Query(context.Background(), req)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("查询报告失败: %v", err), http.StatusInternalServerError)
+		return
+	}
+	if !resp.Success() {
+		http.Error(w, fmt.Sprintf("查询报告失败: %s", resp.Msg), http.StatusInternalServerError)
+		return
+	}
+	// 设置响应头
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	// 返回响应
+	if err := json.NewEncoder(w).Encode(resp.Data); err != nil {
+		http.Error(w, fmt.Sprintf("编码响应失败: %v", err), http.StatusInternalServerError)
+		return
+	}
+
 }
 
 // Login 飞书登录处理

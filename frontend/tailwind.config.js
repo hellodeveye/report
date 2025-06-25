@@ -1,3 +1,5 @@
+const colors = require("tailwindcss/colors");
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -6,7 +8,12 @@ export default {
     "./node_modules/vue-tailwind-datepicker/**/*.js",
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        "vtd-primary": colors.indigo, // Light mode Datepicker color - now matches button style
+        "vtd-secondary": colors.gray, // Dark mode Datepicker color
+      },
+    },
   },
-  plugins: [],
+  plugins: [require("@tailwindcss/forms")],
 } 

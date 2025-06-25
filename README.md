@@ -60,3 +60,173 @@ kubectl apply -f frontend.yaml
 ```
 
 Make sure to configure secrets for the Feishu App credentials within your Kubernetes cluster. 
+
+## API集成说明
+
+### 模板接口
+- **URL**: `GET /api/rules`
+- **查询参数**:
+  - `name`: 模板名称（可选）
+- **响应格式**:
+```json
+[
+  {
+    "rule_id": "7519892154584432668",
+    "name": "技术部-工作日报",
+    "icon_name": "dailyReportIcon",
+    "created_at": 1750861330,
+    "creator_user_id": "ou_72c6d6ac0df0f229d7e19514388c7f83",
+    "creator_user_name": "杨凯",
+    "owner_user_id": "ou_72c6d6ac0df0f229d7e19514388c7f83",
+    "owner_user_name": "杨凯",
+    "form_schema": [
+      {
+        "name": "今日总结",
+        "type": "text"
+      },
+      {
+        "name": "明日计划",
+        "type": "text"
+      },
+      {
+        "name": "需要协调与帮助",
+        "type": "text"
+      }
+    ],
+    "need_report_user_ids": [
+      "ou_72c6d6ac0df0f229d7e19514388c7f83"
+    ],
+    "manager_user_ids": [
+      "ou_72c6d6ac0df0f229d7e19514388c7f83"
+    ]
+  }
+]
+```
+
+### 报告接口
+- **URL**: `GET /api/reports`
+- **查询参数**:
+  - `rule_id`: 模板ID（可选）
+  - `start_time`: 开始时间戳（可选）
+  - `end_time`: 结束时间戳（可选）
+- **响应格式**:
+```json
+{
+  "items": [
+    {
+      "task_id": "7519892643716136988",
+      "rule_name": "技术部-工作日报",
+      "from_user_id": "ou_72c6d6ac0df0f229d7e19514388c7f83",
+      "from_user_name": "杨凯",
+      "department_name": "",
+      "commit_time": 1750861444,
+      "form_contents": [
+        {
+          "field_id": "7519892155655176193",
+          "field_name": "今日总结",
+          "field_value": "test1"
+        },
+        {
+          "field_id": "7519892155675131932",
+          "field_name": "明日计划",
+          "field_value": "test"
+        },
+        {
+          "field_id": "7519892155700133916",
+          "field_name": "需要协调与帮助",
+          "field_value": ""
+        }
+      ],
+      "rule_id": "7519892154584432668",
+      "to_user_ids": [
+        "ou_72c6d6ac0df0f229d7e19514388c7f83"
+      ],
+      "to_user_names": [
+        "杨凯"
+      ]
+    }
+  ],
+  "has_more": false
+}
+```
+
+### 支持的字段类型
+- `text`: 文本（前端显示为富文本编辑器）
+- `number`: 数字
+- `dropdown`: 单选下拉框
+- `multiSelect`: 多选框
+- `image`: 图片上传
+- `attachment`: 附件上传
+- `address`: 地址输入
+- `datetime`: 日期时间选择
+
+### 前端集成特性
+1. **自动加载模板**: 页面启动时自动从 `/api/rules` 加载模板列表
+2. **动态报告获取**: 支持按模板ID和时间范围过滤报告
+3. **字段类型映射**: 自动将API字段类型映射为前端组件类型
+4. **数据格式转换**: 自动处理API响应数据格式转换
+5. **错误处理**: 完整的错误提示和加载状态
+
+### API服务类
+创建了 `FeishuApiService` 类（位于 `frontend/src/utils/aiService.js`），提供：
+
+#### 核心方法
+- `getFixedTemplateList()`: 获取固定的模板名称列表
+- `getAllTemplates()`: 获取所有模板（固定列表 + API内容）
+- `getTemplateContent(templateName)`: 通过API获取指定模板的内容
+- `getDefaultTemplate(templateId, templateName)`: 获取默认模板结构
+- `getRuleByName(templateName)`: 获取指定名称的模板（带容错处理）
+
+#### 报告相关
+- `getReports(params, templateData)`: 获取报告列表
+- `getRawRuleById(ruleId)`: 根据ID获取原始模板数据
+
+#### 工具方法
+- `mapFieldType(apiType)`: 字段类型映射
+- `formatFieldValue(value, type)`: 字段值格式化
+- `formatTime(timestamp)`: 时间格式化
+
+### 模板架构设计
+系统采用**固定模板列表 + 动态内容获取**的架构：
+
+#### 固定模板列表
+前端固定定义以下模板名称：
+1. **工作月报**
+2. **技术部-工作日报**
+
+#### 动态内容获取
+- 模板的具体字段内容通过 `/api/rules?name=模板名称` 接口获取
+- 如果API获取失败，系统会使用预设的默认字段结构
+- 支持完全离线使用（使用默认模板结构）
+
+#### 默认模板结构
+
+**工作月报默认字段**：
+- 本月工作总结 (富文本)
+- 主要成就 (富文本)
+- 遇到的挑战 (富文本)
+- 下月工作计划 (富文本)
+- 关键指标数据 (文本)
+- 团队反馈 (富文本)
+
+**技术部-工作日报默认字段**：
+- 今日总结 (富文本)
+- 明日计划 (富文本)
+- 需要协调与帮助 (富文本)
+
+## 开发说明
+
+### 修改内容概要
+1. **新增API服务**: 创建 `FeishuApiService` 类处理飞书API调用
+2. **数据格式转换**: 将API响应格式转换为前端组件所需格式
+3. **动态模板加载**: 页面启动时从API加载模板，替换静态数据
+4. **动态报告获取**: 支持按条件过滤获取报告数据
+5. **字段类型映射**: 正确映射API字段类型到前端组件类型
+6. **错误处理**: 添加完整的错误提示和加载状态管理
+
+### 开发环境配置
+确保后端API服务运行在 `http://localhost:8080`，前端会自动连接此地址。
+
+## 许可证
+
+MIT License 
