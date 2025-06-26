@@ -21,9 +21,6 @@ dist-ssr
 *.swp
 
 # Environment
-.env
-.env.local
-.env.*.local
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

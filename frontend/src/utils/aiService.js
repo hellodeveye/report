@@ -118,7 +118,8 @@ export class AIService {
 // 飞书API服务类
 export class FeishuApiService {
   constructor() {
-    this.baseURL = 'http://localhost:8080/api';
+    // 使用环境变量或回退到默认值
+    this.baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
     this.rawRulesCache = []; // 缓存原始规则数据
   }
 
