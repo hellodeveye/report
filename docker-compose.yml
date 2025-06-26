@@ -13,6 +13,11 @@ services:
       - REDIS_ADDR=redis:6379
       - FEISHU_APP_ID=${FEISHU_APP_ID}
       - FEISHU_APP_SECRET=${FEISHU_APP_SECRET}
+      - FEISHU_REDIRECT_URI=${FEISHU_REDIRECT_URI:-http://frontend:5173/auth/callback}
+      - FEISHU_BASE_URL=${FEISHU_BASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - ENVIRONMENT=${ENVIRONMENT}
     depends_on:
       - redis
     networks:
@@ -25,6 +30,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "5173:80" # We serve from Nginx's port 80 to host's 5173
+    environment:
+      - VITE_API_URL=http://backend:8080
     networks:
       - app-network
     # In a real production setup with a domain, Nginx would handle routing.

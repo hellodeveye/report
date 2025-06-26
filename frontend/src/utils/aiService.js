@@ -1,3 +1,5 @@
+import { authService } from './authService.js';
+
 // AI 服务工具类
 export class AIService {
   constructor() {
@@ -118,8 +120,8 @@ export class AIService {
 // 飞书API服务类
 export class FeishuApiService {
   constructor() {
-    // 使用环境变量或回退到默认值
-    this.baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+    // 使用相对路径，让Vite代理处理
+    this.baseURL = '/api';
     this.rawRulesCache = []; // 缓存原始规则数据
   }
 
@@ -177,7 +179,7 @@ export class FeishuApiService {
   // 通过API获取特定模板内容
   async getTemplateContent(templateName) {
     const url = `${this.baseURL}/rules?name=${encodeURIComponent(templateName)}`;
-    const response = await fetch(url);
+    const response = await authService.authenticatedFetch(url);
     
     if (!response.ok) {
       throw new Error(`获取模板"${templateName}"失败: ${response.status} ${response.statusText}`);
@@ -307,7 +309,7 @@ export class FeishuApiService {
        if (params.end_time) queryParams.append('end_time', params.end_time);
        
        const url = `${this.baseURL}/reports${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-       const response = await fetch(url);
+       const response = await authService.authenticatedFetch(url);
        
        if (!response.ok) {
          throw new Error(`获取报告失败: ${response.status} ${response.statusText}`);

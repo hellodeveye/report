@@ -22,15 +22,19 @@ func SetupRoutes() *mux.Router {
 	// 创建飞书处理器
 	feishuHandler := handlers.NewFeishuHandler()
 
-	// 飞书相关路由
+	// 认证相关路由（无需登录）
 	api.HandleFunc("/auth/feishu/login", feishuHandler.Login).Methods("GET")
-	api.HandleFunc("/auth/feishu/callback", feishuHandler.Callback).Methods("GET")
-	api.HandleFunc("/rules", feishuHandler.GetRules).Methods("GET")
-	api.HandleFunc("/rules/detail", feishuHandler.GetRuleDetail).Methods("GET")
-	api.HandleFunc("/reports", feishuHandler.GetReports).Methods("GET")
+	api.HandleFunc("/auth/feishu/exchange", feishuHandler.ExchangeCode).Methods("POST")
+	api.HandleFunc("/auth/logout", feishuHandler.Logout).Methods("POST")
 
-	// 报告生成路由
-	api.HandleFunc("/generate-draft", handlers.GenerateDraftHandler).Methods("POST")
+	// 需要认证的路由
+	protected := api.PathPrefix("").Subrouter()
+	protected.Use(middleware.AuthMiddleware)
+
+	protected.HandleFunc("/auth/user", feishuHandler.GetCurrentUser).Methods("GET")
+	protected.HandleFunc("/rules", feishuHandler.GetRules).Methods("GET")
+	protected.HandleFunc("/rules/detail", feishuHandler.GetRuleDetail).Methods("GET")
+	protected.HandleFunc("/reports", feishuHandler.GetReports).Methods("GET")
 
 	return r
 }

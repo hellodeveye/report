@@ -3,11 +3,16 @@ import { ref, onMounted, computed, watch } from 'vue';
 import TiptapEditor from './components/TiptapEditor.vue';
 import TiptapViewer from './components/TiptapViewer.vue';
 import VueTailwindDatepicker from 'vue-tailwind-datepicker';
+import LoginPage from './components/LoginPage.vue';
+import AuthCallback from './components/AuthCallback.vue';
 import { feishuApiService, reportSummarizer, aiService } from './utils/aiService.js';
+import { authService } from './utils/authService.js';
 
 // --- State Management ---
 
-const isAuthenticated = ref(true);
+const isAuthenticated = ref(false);
+const currentUser = ref(null);
+const showAuthCallback = ref(false);
 const isLoading = ref(false);
 const loadingText = ref('正在加载...');
 
@@ -45,9 +50,75 @@ onMounted(async () => {
     }
   });
   
-  // 加载模板列表
-  await loadTemplates();
+  // 检查认证状态
+  await checkAuthStatus();
 });
+
+// 检查认证状态
+const checkAuthStatus = async () => {
+  try {
+    // 检查URL是否包含飞书OAuth回调
+    if (window.location.pathname === '/auth/callback' || window.location.search.includes('code=')) {
+      showAuthCallback.value = true;
+      return; // 不继续执行其他逻辑
+    }
+    
+    // 检查是否已登录
+    if (authService.isAuthenticated()) {
+      try {
+        // 优先从本地存储获取用户信息
+        let user = authService.getUser();
+        
+        // 如果本地没有用户信息，从服务器获取
+        if (!user) {
+          user = await authService.getCurrentUser();
+        }
+        
+        currentUser.value = user;
+        isAuthenticated.value = true;
+        
+        // 加载模板列表
+        await loadTemplates();
+        
+        // 只在首次登录时显示欢迎消息
+        if (!sessionStorage.getItem('login_welcomed')) {
+          addNotification('登录成功', `欢迎回来，${user.name || '用户'}！`, 'success');
+          sessionStorage.setItem('login_welcomed', 'true');
+        }
+      } catch (error) {
+        console.error('获取用户信息失败:', error);
+        authService.clearToken();
+        isAuthenticated.value = false;
+        currentUser.value = null;
+      }
+    } else {
+      isAuthenticated.value = false;
+      currentUser.value = null;
+    }
+  } catch (error) {
+    console.error('认证状态检查失败:', error);
+    isAuthenticated.value = false;
+    currentUser.value = null;
+  }
+};
+
+// 退出登录
+const handleLogout = async () => {
+  try {
+    // 清除欢迎标记
+    sessionStorage.removeItem('login_welcomed');
+    // 调用authService的logout方法（会自动清理状态并跳转）
+    await authService.logout();
+  } catch (error) {
+    console.error('退出登录失败:', error);
+    // 即使API调用失败，也清除本地状态
+    authService.clearToken();
+    isAuthenticated.value = false;
+    currentUser.value = null;
+    // 手动跳转到登录页
+    window.location.href = '/';
+  }
+};
 
 // 加载模板列表
 const loadTemplates = async () => {
@@ -63,7 +134,7 @@ const loadTemplates = async () => {
       selectedTemplateId.value = templatesData[0].id;
     }
     
-    addNotification('模板加载成功', `成功加载${templatesData.length}个模板`, 'success');
+    console.log(`成功加载${templatesData.length}个模板`);
   } catch (error) {
     console.error('加载模板失败:', error);
     addNotification('模板加载失败', error.message, 'error');
@@ -260,6 +331,7 @@ const generateDraft = async () => {
     if (hasSourceReports) {
       
       // 使用AI汇总生成草稿
+      loadingText.value = '正在分析源报告并生成智能草稿...';
       addNotification('正在生成', '正在分析源报告并生成智能草稿...', 'success');
       
       const summary = await reportSummarizer.summarizeReports(
@@ -271,6 +343,7 @@ const generateDraft = async () => {
       addNotification('AI草稿已生成', '已基于左侧报告内容智能生成草稿', 'success');
     } else {
       // 没有源报告时，使用AI生成通用草稿
+      loadingText.value = '正在生成AI智能草稿...';
       addNotification('正在生成', '正在生成AI智能草稿...', 'success');
       
       const newValues = {};
@@ -493,17 +566,24 @@ const cancelApiKeyDialog = () => {
     </div>
   </div>
 
-  <div class="min-h-screen w-full flex items-center justify-center p-4 bg-gray-900/10">
+  <!-- OAuth回调处理页面 -->
+  <AuthCallback v-if="showAuthCallback" />
+  
+  <!-- 登录页面 -->
+  <LoginPage v-else-if="!isAuthenticated" />
+  
+  <!-- 主应用界面 -->
+  <div v-else class="min-h-screen w-full flex items-center justify-center p-4 bg-gray-900/10">
     <div class="w-full max-w-screen-2xl h-[90vh] bg-white/60 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-white/30 relative">
       
       <!-- Loading Overlay -->
       <div v-if="isLoading" class="absolute inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-50 rounded-2xl">
-        <div class="flex flex-col items-center">
-          <svg class="animate-spin -ml-1 mr-3 h-10 w-10 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <div class="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-2xl p-8 shadow-xl border border-white/30">
+          <svg class="animate-spin h-12 w-12 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          <span class="mt-4 text-white text-lg font-semibold">{{ loadingText }}</span>
+          <span class="mt-4 text-gray-800 text-lg font-semibold">{{ loadingText }}</span>
         </div>
       </div>
       
@@ -512,15 +592,18 @@ const cancelApiKeyDialog = () => {
         
         <!-- User Profile Section -->
         <div class="flex items-center space-x-3">
-          <div class="relative" ref="profileMenuNode">
+                      <div class="relative" ref="profileMenuNode">
             <button @click="isProfileMenuOpen = !isProfileMenuOpen" 
-                    class="flex items-center space-x-2 p-1 rounded-md transition-colors duration-200"
+                    class="flex items-center space-x-2 p-2 rounded-lg transition-colors duration-200"
                     :class="[isProfileMenuOpen ? 'bg-gray-500/20' : 'hover:bg-gray-500/10']">
-              <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-indigo-500 text-white font-bold">
-                A
+              <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-indigo-500 text-white font-bold text-sm">
+                {{ currentUser?.name?.charAt(0)?.toUpperCase() || 'U' }}
               </span>
-              <span class="text-gray-700 font-semibold">Admin</span>
-              <svg class="w-5 h-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <div class="text-left">
+                <div class="text-sm font-semibold text-gray-700">{{ currentUser?.name || '用户' }}</div>
+                <div class="text-xs text-gray-500">飞书用户</div>
+              </div>
+              <svg class="w-4 h-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
               </svg>
             </button>
@@ -534,16 +617,58 @@ const cancelApiKeyDialog = () => {
               leave-from-class="transform opacity-100 scale-100"
               leave-to-class="transform opacity-0 scale-95"
             >
-              <div v-if="isProfileMenuOpen" class="absolute right-0 mt-2 w-48 bg-white/80 backdrop-blur-sm rounded-md shadow-lg py-1 z-20 border border-white/30">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white/50">个人资料</a>
-                <a href="#" @click.prevent="openApiKeyDialog" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white/50 flex items-center justify-between">
-                  <span>API Key配置</span>
-                  <span v-if="aiService.hasApiKey()" class="text-green-500 text-xs">●</span>
-                  <span v-else class="text-gray-400 text-xs">●</span>
-                </a>
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white/50">设置</a>
+              <div v-if="isProfileMenuOpen" class="absolute right-0 mt-2 w-56 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg py-2 z-20 border border-white/30">
+                <!-- 用户信息区域 -->
+                <div class="px-4 py-3 border-b border-gray-200/50">
+                  <div class="flex items-center space-x-3">
+                    <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-indigo-500 text-white font-bold">
+                      {{ currentUser?.name?.charAt(0)?.toUpperCase() || 'U' }}
+                    </span>
+                    <div>
+                      <div class="text-sm font-semibold text-gray-900">{{ currentUser?.name || '用户' }}</div>
+                      <div class="text-xs text-gray-500">{{ currentUser?.email || 'feishu@user' }}</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- 菜单项 -->
+                <div class="py-1">
+                  <a href="#" @click.prevent="openApiKeyDialog" class="flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-white/50 transition-colors">
+                    <div class="flex items-center">
+                      <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m0 0a2 2 0 012 2m-2-2h-4m-2 1v-3m0 0a2 2 0 00-2-2m2 2H9m0 0H7m2 0v3M9 7h4"></path>
+                      </svg>
+                      <span>API Key配置</span>
+                    </div>
+                    <span v-if="aiService.hasApiKey()" class="w-2 h-2 bg-green-500 rounded-full"></span>
+                    <span v-else class="w-2 h-2 bg-gray-300 rounded-full"></span>
+                  </a>
+                  
+                  <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-white/50 transition-colors">
+                    <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                    <span>个人资料</span>
+                  </a>
+                  
+                  <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-white/50 transition-colors">
+                    <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    <span>设置</span>
+                  </a>
+                </div>
+                
                 <div class="border-t border-gray-200/50"></div>
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white/50">退出登录</a>
+                <div class="py-1">
+                  <a href="#" @click.prevent="handleLogout" class="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                    <span>退出登录</span>
+                  </a>
+                </div>
               </div>
             </transition>
           </div>
@@ -717,6 +842,7 @@ const cancelApiKeyDialog = () => {
       </main>
     </div>
   </div>
+  <!-- 主应用界面结束 -->
 
   <!-- API Key Configuration Dialog -->
   <div v-if="showApiKeyDialog" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">

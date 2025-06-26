@@ -21,28 +21,46 @@ The project is organized into three main directories:
 ### Prerequisites
 
 -   Docker and Docker Compose
--   `kubectl` for Kubernetes deployment
+-   `kubectl` for Kubernetes deployment (optional)
 -   A Feishu App with `App ID` and `App Secret`
+-   Node.js 18+ and Go 1.18+ (for local development)
 
 ### Running with Docker Compose (Recommended for Local Development)
 
-1.  **Configure Feishu App Credentials:**
+1.  **Configure Feishu App:**
+    First, create a Feishu application in the [Feishu Developer Console](https://open.feishu.cn/app):
+    - Set the redirect URI to: `http://localhost:5173/auth/callback`
+    - Enable required permissions: user info access
+    - Note down your App ID and App Secret
+
+2.  **Configure Environment Variables:**
     Create a `.env` file in the root directory and add your Feishu app details:
 
     ```env
     FEISHU_APP_ID=your_app_id
     FEISHU_APP_SECRET=your_app_secret
+    FEISHU_REDIRECT_URI=http://localhost:5173/auth/callback
+    FEISHU_BASE_URL=https://open.feishu.cn
+    JWT_SECRET=your-jwt-secret-key-change-in-production
+    FRONTEND_URL=http://localhost:5173
     ```
 
-2.  **Build and Run:**
+3.  **Build and Run:**
 
     ```bash
     docker-compose up --build
     ```
 
-3.  **Access the application:**
+4.  **Access the application:**
     -   Frontend: `http://localhost:5173`
     -   Backend API: `http://localhost:8080`
+
+5.  **Login Process:**
+    - Visit `http://localhost:5173` in your browser
+    - Click "使用飞书登录" button
+    - You'll be redirected to Feishu's authentication page
+    - Scan the QR code with Feishu mobile app or login with credentials
+    - After successful authentication, you'll be redirected back to the main application
 
 ### Running with Kubernetes
 
@@ -63,7 +81,13 @@ Make sure to configure secrets for the Feishu App credentials within your Kubern
 
 ## API集成说明
 
-### 模板接口
+### 认证接口
+- **Login**: `GET /api/auth/feishu/login` - 获取飞书OAuth登录URL
+- **Exchange Code**: `POST /api/auth/feishu/exchange` - 用授权码换取JWT token
+- **Current User**: `GET /api/auth/user` - 获取当前用户信息（需要认证）
+- **Logout**: `POST /api/auth/logout` - 退出登录
+
+### 模板接口（需要认证）
 - **URL**: `GET /api/rules`
 - **查询参数**:
   - `name`: 模板名称（可选）
