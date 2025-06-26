@@ -11,7 +11,7 @@ export default {
     extend: {
       colors: {
         "vtd-primary": colors.indigo, // Light mode Datepicker color - now matches button style
-        "vtd-secondary": colors.black, // Dark mode Datepicker color
+        // "vtd-secondary": colors.indigo, // Dark mode Datepicker color
       },
     },
   },
