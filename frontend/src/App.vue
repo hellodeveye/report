@@ -9,6 +9,7 @@ import { feishuApiService, reportSummarizer, aiService } from './utils/aiService
 
 const isAuthenticated = ref(true);
 const isLoading = ref(false);
+const loadingText = ref('正在加载...');
 
 const templates = ref([]);
 const selectedSourceTemplateId = ref('');
@@ -51,6 +52,7 @@ onMounted(async () => {
 // 加载模板列表
 const loadTemplates = async () => {
   try {
+    loadingText.value = '正在加载模板...';
     isLoading.value = true;
     const templatesData = await feishuApiService.getAllTemplates();
     templates.value = templatesData;
@@ -186,6 +188,7 @@ const toggleReportDetail = (report) => {
 
 const getReports = async () => {
   try {
+    loadingText.value = '正在获取报告...';
     isLoading.value = true;
     
     // 构建查询参数
@@ -247,6 +250,7 @@ const generateDraft = async () => {
     return;
   }
   
+  loadingText.value = '正在生成草稿...';
   isLoading.value = true;
   
   // 检查是否有左侧报告数据
@@ -499,7 +503,7 @@ const cancelApiKeyDialog = () => {
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          <span class="mt-4 text-white text-lg font-semibold">正在生成草稿...</span>
+          <span class="mt-4 text-white text-lg font-semibold">{{ loadingText }}</span>
         </div>
       </div>
       
