@@ -23,6 +23,7 @@
           </div>
           <h1 class="text-2xl font-bold text-gray-800 mb-2">登录成功</h1>
           <p class="text-gray-600 mb-4">欢迎回来，{{ userInfo?.name || '用户' }}！</p>
+          <p class="text-sm text-gray-500">使用{{ getProviderDisplayName(userInfo?.provider) }}账号登录</p>
           <p class="text-sm text-gray-500">正在跳转到主页...</p>
         </div>
 
@@ -90,5 +91,17 @@ onMounted(async () => {
 
 const retryLogin = () => {
   window.location.href = '/';
+};
+
+// 获取平台显示名称
+const getProviderDisplayName = (provider) => {
+  switch (provider) {
+    case 'feishu':
+      return '飞书';
+    case 'dingtalk':
+      return '钉钉';
+    default:
+      return '未知';
+  }
 };
 </script> 

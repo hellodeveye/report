@@ -50,20 +50,21 @@ class AuthService {
     }
   }
 
-  // 发起登录
-  async login() {
+  // 发起登录 - 支持多个提供商
+  async login(provider = 'feishu') {
     try {
-      const response = await fetch(`${this.baseURL}/auth/feishu/login`);
+      const response = await fetch(`${this.baseURL}/auth/${provider}/login`);
       if (!response.ok) {
         throw new Error('Failed to get auth URL');
       }
       
       const data = await response.json();
       
-      // 保存state到localStorage
+      // 保存state和provider到localStorage
       localStorage.setItem('oauth_state', data.state);
+      localStorage.setItem('oauth_provider', provider);
       
-      // 跳转到飞书授权页面
+      // 跳转到授权页面
       window.location.href = data.auth_url;
     } catch (error) {
       console.error('Login error:', error);
@@ -93,12 +94,13 @@ class AuthService {
     }
   }
 
-  // 处理飞书OAuth回调（授权码）
+  // 处理OAuth回调（授权码）- 支持多个提供商
   async handleAuthCallback() {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const state = urlParams.get('state');
     const storedState = localStorage.getItem('oauth_state');
+    const provider = localStorage.getItem('oauth_provider') || 'feishu';
     
     if (!code) {
       throw new Error('No authorization code found');
@@ -110,12 +112,13 @@ class AuthService {
     
     try {
       // 用授权码换取JWT token
-      const response = await fetch(`${this.baseURL}/auth/feishu/exchange`, {
+      const response = await fetch(`${this.baseURL}/auth/${provider}/exchange`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
+          provider: provider,
           code: code,
           state: state
         })
@@ -131,8 +134,9 @@ class AuthService {
       this.setToken(authData.token);
       this.setUser(authData.user);
       
-      // 清除state
+      // 清除state和provider
       localStorage.removeItem('oauth_state');
+      localStorage.removeItem('oauth_provider');
       
       // 清除URL参数
       window.history.replaceState({}, document.title, window.location.pathname);

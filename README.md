@@ -27,20 +27,37 @@ The project is organized into three main directories:
 
 ### Running with Docker Compose (Recommended for Local Development)
 
-1.  **Configure Feishu App:**
-    First, create a Feishu application in the [Feishu Developer Console](https://open.feishu.cn/app):
+1.  **Configure Apps:**
+    
+    **For Feishu:**
+    Create a Feishu application in the [Feishu Developer Console](https://open.feishu.cn/app):
     - Set the redirect URI to: `http://localhost:5173/auth/callback`
     - Enable required permissions: user info access
     - Note down your App ID and App Secret
+    
+    **For DingTalk:**
+    Create a DingTalk application in the [DingTalk Developer Console](https://open-dev.dingtalk.com):
+    - Set the redirect URI to: `http://localhost:5173/auth/callback`
+    - Enable required permissions: user info access
+    - Note down your App Key and App Secret
 
 2.  **Configure Environment Variables:**
-    Create a `.env` file in the root directory and add your Feishu app details:
+    Create a `.env` file in the root directory and add your app details:
 
     ```env
+    # 飞书配置
     FEISHU_APP_ID=your_app_id
     FEISHU_APP_SECRET=your_app_secret
     FEISHU_REDIRECT_URI=http://localhost:5173/auth/callback
     FEISHU_BASE_URL=https://open.feishu.cn
+    
+    # 钉钉配置
+    DINGTALK_APP_KEY=your_dingtalk_app_key
+    DINGTALK_APP_SECRET=your_dingtalk_app_secret
+    DINGTALK_REDIRECT_URI=http://localhost:5173/auth/callback
+    DINGTALK_BASE_URL=https://oapi.dingtalk.com
+    
+    # 通用配置
     JWT_SECRET=your-jwt-secret-key-change-in-production
     FRONTEND_URL=http://localhost:5173
     ```
@@ -57,9 +74,9 @@ The project is organized into three main directories:
 
 5.  **Login Process:**
     - Visit `http://localhost:5173` in your browser
-    - Click "使用飞书登录" button
-    - You'll be redirected to Feishu's authentication page
-    - Scan the QR code with Feishu mobile app or login with credentials
+    - Choose either "使用飞书登录" or "使用钉钉登录" button
+    - You'll be redirected to the selected platform's authentication page
+    - Scan the QR code with the corresponding mobile app or login with credentials
     - After successful authentication, you'll be redirected back to the main application
 
 ### Running with Kubernetes

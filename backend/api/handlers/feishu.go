@@ -189,10 +189,7 @@ func (h *FeishuHandler) ExchangeCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var requestData struct {
-		Code  string `json:"code"`
-		State string `json:"state"`
-	}
+	var requestData models.AuthRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
 		fmt.Printf("Failed to decode request body: %v\n", err)
@@ -225,7 +222,7 @@ func (h *FeishuHandler) ExchangeCode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 生成JWT token
-	token, err := auth.GenerateToken(*user)
+	token, expiresAt, err := auth.GenerateToken(user.OpenID, user.Name)
 	if err != nil {
 		fmt.Printf("Failed to generate JWT token: %v\n", err)
 		http.Error(w, "Failed to generate authentication token", http.StatusInternalServerError)
@@ -233,10 +230,11 @@ func (h *FeishuHandler) ExchangeCode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 返回token和用户信息给前端
-	response := models.AuthToken{
+	response := models.AuthResponse{
 		Token:     token,
-		ExpiresAt: time.Now().Add(24 * time.Hour).Unix(),
+		ExpiresAt: expiresAt,
 		User:      *user,
+		Provider:  models.ProviderFeishu,
 	}
 
 	fmt.Printf("Successfully authenticated user: %s (OpenID: %s)\n", user.Name, user.OpenID)
@@ -404,7 +402,12 @@ func (h *FeishuHandler) getUserInfo(accessToken string) (*models.User, error) {
 	}
 
 	fmt.Printf("Successfully obtained user info for: %s\n", userResp.Data.Name)
-	return &userResp.Data, nil
+
+	// 设置provider字段
+	user := userResp.Data
+	user.Provider = models.ProviderFeishu
+
+	return &user, nil
 }
 
 // GetCurrentUser 获取当前登录用户信息

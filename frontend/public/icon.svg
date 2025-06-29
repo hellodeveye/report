@@ -1,0 +1,18 @@
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 圆形背景 -->
+  <circle cx="96" cy="96" r="96" fill="#7C3AED"/>
+  
+  <!-- 文档图标 -->
+  <g transform="translate(48, 48)">
+    <!-- 文档主体 -->
+    <path d="M12 12C12 5.37258 17.3726 0 24 0H60L84 24V84C84 90.6274 78.6274 96 72 96H24C17.3726 96 12 90.6274 12 84V12Z" fill="white"/>
+    
+    <!-- 文档右上角折痕 -->
+    <path d="M60 0L84 24H72C65.3726 24 60 18.6274 60 12V0Z" fill="white" fill-opacity="0.8"/>
+    
+    <!-- 文档内容线条 -->
+    <rect x="24" y="36" width="36" height="6" rx="3" fill="#6366F1" fill-opacity="0.3"/>
+    <rect x="24" y="48" width="48" height="6" rx="3" fill="#6366F1" fill-opacity="0.3"/>
+    <rect x="24" y="60" width="42" height="6" rx="3" fill="#6366F1" fill-opacity="0.3"/>
+  </g>
+</svg> 

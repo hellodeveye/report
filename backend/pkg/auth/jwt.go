@@ -16,12 +16,13 @@ type Claims struct {
 }
 
 // GenerateToken 生成JWT token
-func GenerateToken(user models.User) (string, error) {
+func GenerateToken(openID, name string) (string, int64, error) {
+	expireTime := time.Now().Add(24 * time.Hour)
 	claims := &Claims{
-		OpenID: user.OpenID,
-		Name:   user.Name,
+		OpenID: openID,
+		Name:   name,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)), // 24小时过期
+			ExpiresAt: jwt.NewNumericDate(expireTime), // 24小时过期
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Issuer:    "feishu-report-assistant",
 		},
@@ -30,10 +31,16 @@ func GenerateToken(user models.User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString([]byte(config.GetJWTSecret()))
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
-	return tokenString, nil
+	return tokenString, expireTime.Unix(), nil
+}
+
+// GenerateTokenFromUser 从用户对象生成JWT token (保持向后兼容)
+func GenerateTokenFromUser(user models.User) (string, error) {
+	token, _, err := GenerateToken(user.OpenID, user.Name)
+	return token, err
 }
 
 // ValidateToken 验证JWT token

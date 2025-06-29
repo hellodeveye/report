@@ -26,12 +26,13 @@ func GetJWTSecret() string {
 	return getEnv("JWT_SECRET", "default-jwt-secret-change-in-production")
 }
 
-// GetServerConfig 获取服务器配置
-func GetServerConfig() *models.ServerConfig {
-	return &models.ServerConfig{
-		Port:        getEnv("PORT", "8080"),
-		Environment: getEnv("ENVIRONMENT", "development"),
-		FrontendURL: getEnv("FRONTEND_URL", "http://localhost:5173"),
+// GetDingTalkConfig 获取钉钉配置
+func GetDingTalkConfig() *models.DingTalkConfig {
+	return &models.DingTalkConfig{
+		AppKey:      getEnv("DINGTALK_APP_KEY", ""),
+		AppSecret:   getEnv("DINGTALK_APP_SECRET", ""),
+		RedirectURI: getEnv("DINGTALK_REDIRECT_URI", ""),
+		BaseURL:     getEnv("DINGTALK_BASE_URL", "https://oapi.dingtalk.com"),
 	}
 }
 

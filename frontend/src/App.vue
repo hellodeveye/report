@@ -120,6 +120,42 @@ const handleLogout = async () => {
   }
 };
 
+// 获取平台显示名称
+const getProviderDisplayName = (provider) => {
+  switch (provider) {
+    case 'feishu':
+      return '飞书';
+    case 'dingtalk':
+      return '钉钉';
+    default:
+      return '未知';
+  }
+};
+
+// 获取平台头像背景色
+const getProviderAvatarClass = (provider) => {
+  switch (provider) {
+    case 'feishu':
+      return 'bg-indigo-500';
+    case 'dingtalk':
+      return 'bg-blue-500';
+    default:
+      return 'bg-gray-500';
+  }
+};
+
+// 获取平台默认邮箱后缀
+const getProviderDefaultEmail = (provider) => {
+  switch (provider) {
+    case 'feishu':
+      return 'feishu@user';
+    case 'dingtalk':
+      return 'dingtalk@user';
+    default:
+      return 'unknown@user';
+  }
+};
+
 // 加载模板列表
 const loadTemplates = async () => {
   try {
@@ -588,7 +624,7 @@ const cancelApiKeyDialog = () => {
       </div>
       
       <header class="flex-shrink-0 flex items-center justify-between border-b border-white/30 shadow-sm z-10 p-4">
-        <h1 class="text-xl font-bold text-gray-800">飞书报告助手</h1>
+        <h1 class="text-xl font-bold text-gray-800">{{ getProviderDisplayName(currentUser?.provider) }}报告助手</h1>
         
         <!-- User Profile Section -->
         <div class="flex items-center space-x-3">
@@ -596,12 +632,19 @@ const cancelApiKeyDialog = () => {
             <button @click="isProfileMenuOpen = !isProfileMenuOpen" 
                     class="flex items-center space-x-2 p-2 rounded-lg transition-colors duration-200"
                     :class="[isProfileMenuOpen ? 'bg-gray-500/20' : 'hover:bg-gray-500/10']">
-              <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-indigo-500 text-white font-bold text-sm">
+              <!-- 用户头像 -->
+              <img v-if="currentUser?.avatar_url" 
+                   :src="currentUser.avatar_url" 
+                   :alt="currentUser.name"
+                   class="h-8 w-8 rounded-full object-cover border border-gray-200">
+              <span v-else 
+                    class="inline-flex items-center justify-center h-8 w-8 rounded-full text-white font-bold text-sm"
+                    :class="getProviderAvatarClass(currentUser?.provider)">
                 {{ currentUser?.name?.charAt(0)?.toUpperCase() || 'U' }}
               </span>
               <div class="text-left">
                 <div class="text-sm font-semibold text-gray-700">{{ currentUser?.name || '用户' }}</div>
-                <div class="text-xs text-gray-500">飞书用户</div>
+                <div class="text-xs text-gray-500">{{ getProviderDisplayName(currentUser?.provider) }}用户</div>
               </div>
               <svg class="w-4 h-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -617,16 +660,25 @@ const cancelApiKeyDialog = () => {
               leave-from-class="transform opacity-100 scale-100"
               leave-to-class="transform opacity-0 scale-95"
             >
-              <div v-if="isProfileMenuOpen" class="absolute right-0 mt-2 w-56 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg py-2 z-20 border border-white/30">
+              <div v-if="isProfileMenuOpen" class="absolute right-0 mt-2 w-64 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg py-2 z-20 border border-white/30">
                 <!-- 用户信息区域 -->
-                <div class="px-4 py-3 border-b border-gray-200/50">
-                  <div class="flex items-center space-x-3">
-                    <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-indigo-500 text-white font-bold">
+                                  <div class="px-4 py-3 border-b border-gray-200/50">
+                    <div class="flex items-center space-x-3 min-w-0">
+                    <!-- 用户头像 -->
+                    <img v-if="currentUser?.avatar_url" 
+                         :src="currentUser.avatar_url" 
+                         :alt="currentUser.name"
+                         class="h-10 w-10 rounded-full object-cover border border-gray-200">
+                    <span v-else 
+                          class="inline-flex items-center justify-center h-10 w-10 rounded-full text-white font-bold"
+                          :class="getProviderAvatarClass(currentUser?.provider)">
                       {{ currentUser?.name?.charAt(0)?.toUpperCase() || 'U' }}
                     </span>
-                    <div>
-                      <div class="text-sm font-semibold text-gray-900">{{ currentUser?.name || '用户' }}</div>
-                      <div class="text-xs text-gray-500">{{ currentUser?.email || 'feishu@user' }}</div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm font-semibold text-gray-900 truncate">{{ currentUser?.name || '用户' }}</div>
+                      <div class="text-xs text-gray-500 break-all max-w-[180px]" :title="currentUser?.email || getProviderDefaultEmail(currentUser?.provider)">
+                        {{ currentUser?.email || getProviderDefaultEmail(currentUser?.provider) }}
+                      </div>
                     </div>
                   </div>
                 </div>
