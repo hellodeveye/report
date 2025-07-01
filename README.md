@@ -65,19 +65,7 @@
     -   前端: `http://localhost:5173`
     -   后端 API: `http://localhost:8080`
 
-### Kubernetes 部署
 
-进入 `deployment` 目录并应用配置:
-
-```bash
-# 部署后端
-kubectl apply -f backend.yaml
-
-# 部署前端
-kubectl apply -f frontend.yaml
-```
-
-> **注意:** 您需要先在Kubernetes集群中为飞书和钉钉的应用凭证创建`Secret`。
 
 ## API 集成说明
 
