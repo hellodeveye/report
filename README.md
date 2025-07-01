@@ -29,8 +29,8 @@
 
 1.  **创建应用:**
     
-    -   **飞书:** 在 [飞书开放平台](https://open.feishu.cn/app) 创建应用，并将重定向URI设置为 `http://localhost:5173/auth/callback`。
-    -   **钉钉:** 在 [钉钉开放平台](https://open-dev.dingtalk.com) 创建应用，并将重定向URI设置为 `http://localhost:5173/auth/callback`。
+    -   **飞书:** 在 [飞书开放平台](https://open.feishu.cn/app) 创建应用，并将重定向URI设置为 `http://localhost:5173/feishu/callback`。
+    -   **钉钉:** 在 [钉钉开放平台](https://open-dev.dingtalk.com) 创建应用，并将重定向URI设置为 `http://localhost:5173/dingtalk/callback`。
 
 2.  **配置环境变量:**
     
