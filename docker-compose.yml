@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Backend Service (Go)
   backend:
@@ -31,6 +29,7 @@ services:
       - VITE_API_URL=http://backend:8080
     networks:
       - app-network
-    # In a real production setup with a domain, Nginx would handle routing.
-    # For local dev, Vite's proxy is often easier. If we were using Nginx
-    # to proxy, we'd mount a custom nginx.conf file here.
+
+networks:
+  app-network:
+    driver: bridge

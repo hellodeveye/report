@@ -8,13 +8,12 @@
 
 -   `/backend`: Go语言开发的后端服务，负责处理核心业务逻辑、与飞书/钉钉开放平台通信，并提供API接口。
 -   `/frontend`: 基于Vue.js的单页应用，为用户提供友好的操作界面。
--   `/deployment`: 包含Docker、Docker Compose和Kubernetes的部署配置文件。
 
 ## 🛠️ 技术栈
 
 -   **后端**: Go, Gorilla/Mux
 -   **前端**: Vue.js, Vite, Tailwind CSS, Tiptap Editor
--   **部署**: Docker, Docker Compose, Kubernetes
+-   **部署**: Docker, Docker Compose
 
 ## 快速开始
 
