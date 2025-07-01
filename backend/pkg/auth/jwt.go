@@ -24,7 +24,7 @@ func GenerateToken(openID, name string) (string, int64, error) {
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expireTime), // 24小时过期
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    "feishu-report-assistant",
+			Issuer:    "report-assistant",
 		},
 	}
 

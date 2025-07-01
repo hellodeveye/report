@@ -21,9 +21,8 @@ FROM nginx:stable-alpine AS production-stage
 # Copy the built assets from the build stage
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 
-# Copy the nginx config file
-# We don't have a custom one, the default is fine for a SPA
-# It will serve index.html for any route that is not a file
+# Copy the custom nginx config file
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose port 80
 EXPOSE 80
