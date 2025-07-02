@@ -32,8 +32,8 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		// 将用户信息添加到上下文中
-		ctx := context.WithValue(r.Context(), "user_open_id", claims.OpenID)
-		ctx = context.WithValue(ctx, "user_name", claims.Name)
+		ctx := context.WithValue(r.Context(), auth.UserOpenIDKey, claims.OpenID)
+		ctx = context.WithValue(ctx, auth.UserNameKey, claims.Name)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -49,8 +49,8 @@ func OptionalAuthMiddleware(next http.Handler) http.Handler {
 				tokenString := parts[1]
 				if claims, err := auth.ValidateToken(tokenString); err == nil {
 					// 将用户信息添加到上下文中
-					ctx := context.WithValue(r.Context(), "user_open_id", claims.OpenID)
-					ctx = context.WithValue(ctx, "user_name", claims.Name)
+					ctx := context.WithValue(r.Context(), auth.UserOpenIDKey, claims.OpenID)
+					ctx = context.WithValue(ctx, auth.UserNameKey, claims.Name)
 					r = r.WithContext(ctx)
 				}
 			}

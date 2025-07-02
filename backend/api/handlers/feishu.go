@@ -1,20 +1,14 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/hellodeveye/report/internal/config"
 	"github.com/hellodeveye/report/internal/models"
 	"github.com/hellodeveye/report/pkg/auth"
 	"github.com/hellodeveye/report/pkg/feishu"
-	lark "github.com/larksuite/oapi-sdk-go/v3"
-	larkreport "github.com/larksuite/oapi-sdk-go/v3/service/report/v1"
 )
 
 // HealthCheckHandler 健康检查处理器
@@ -25,32 +19,26 @@ func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 
 // FeishuHandler 飞书相关处理器
 type FeishuHandler struct {
-	client *lark.Client
+	authService   *feishu.AuthService
+	reportService *feishu.ReportService
 }
 
 // NewFeishuHandler 创建新的飞书处理器
 func NewFeishuHandler() *FeishuHandler {
 	feishuConfig := config.GetFeishuConfig()
 	feishuClient := feishu.NewClient(feishuConfig)
+	authService := feishu.NewAuthService(feishuConfig)
+	reportService := feishu.NewReportService(feishuClient)
 
 	return &FeishuHandler{
-		client: feishuClient,
+		authService:   authService,
+		reportService: reportService,
 	}
 }
 
-// GetRules 获取报告规则
+// GetRuleDetail 获取报告规则详情
 func (h *FeishuHandler) GetRuleDetail(w http.ResponseWriter, r *http.Request) {
-	// 创建请求对象
-	req := larkreport.NewQueryRuleReqBuilder().
-		RuleName(`test-日报模版`).
-		IncludeDeleted(0).
-		UserIdType(`open_id`).
-		Build()
-
-	// 发起请求
-	resp, err := h.client.Report.V1.Rule.Query(context.Background(), req)
-
-	// 处理错误
+	rules, err := h.reportService.QueryRuleDetail(`test-日报模版`)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("查询规则失败: %v", err), http.StatusInternalServerError)
 		return
@@ -61,7 +49,7 @@ func (h *FeishuHandler) GetRuleDetail(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	// 返回响应
-	if err := json.NewEncoder(w).Encode(resp.Data.Rules); err != nil {
+	if err := json.NewEncoder(w).Encode(rules); err != nil {
 		http.Error(w, fmt.Sprintf("编码响应失败: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -70,17 +58,8 @@ func (h *FeishuHandler) GetRuleDetail(w http.ResponseWriter, r *http.Request) {
 // GetRules 获取报告规则
 func (h *FeishuHandler) GetRules(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get("name")
-	// 创建请求对象
-	req := larkreport.NewQueryRuleReqBuilder().
-		RuleName(name).
-		IncludeDeleted(0).
-		UserIdType(`open_id`).
-		Build()
 
-	// 发起请求
-	resp, err := h.client.Report.V1.Rule.Query(context.Background(), req)
-
-	// 处理错误
+	rules, err := h.reportService.QueryRules(name)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("查询规则失败: %v", err), http.StatusInternalServerError)
 		return
@@ -91,7 +70,7 @@ func (h *FeishuHandler) GetRules(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	// 返回响应
-	if err := json.NewEncoder(w).Encode(resp.Data.Rules); err != nil {
+	if err := json.NewEncoder(w).Encode(rules); err != nil {
 		http.Error(w, fmt.Sprintf("编码响应失败: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -102,67 +81,31 @@ func (h *FeishuHandler) GetReports(w http.ResponseWriter, r *http.Request) {
 	startTime := r.URL.Query().Get("start_time")
 	endTime := r.URL.Query().Get("end_time")
 
-	// 解析时间戳
-	var startTimeInt, endTimeInt int
-	if startTime != "" {
-		if parsed, err := strconv.ParseInt(startTime, 10, 64); err == nil {
-			startTimeInt = int(parsed)
-		}
-	}
-	if endTime != "" {
-		if parsed, err := strconv.ParseInt(endTime, 10, 64); err == nil {
-			endTimeInt = int(parsed)
-		}
-	}
-
-	// 创建请求对象
-	req := larkreport.NewQueryTaskReqBuilder().
-		UserIdType(`open_id`).
-		Body(larkreport.NewQueryTaskReqBodyBuilder().
-			CommitStartTime(startTimeInt).
-			CommitEndTime(endTimeInt).
-			RuleId(ruleId).
-			PageSize(10).
-			PageToken("").
-			Build()).
-		Build()
-
-	// 发起请求
-	resp, err := h.client.Report.V1.Task.Query(context.Background(), req)
-
+	data, err := h.reportService.QueryReports(ruleId, startTime, endTime)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("查询报告失败: %v", err), http.StatusInternalServerError)
 		return
 	}
-	if !resp.Success() {
-		http.Error(w, fmt.Sprintf("查询报告失败: %s", resp.Msg), http.StatusInternalServerError)
-		return
-	}
+
 	// 设置响应头
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
 	// 返回响应
-	if err := json.NewEncoder(w).Encode(resp.Data); err != nil {
+	if err := json.NewEncoder(w).Encode(data); err != nil {
 		http.Error(w, fmt.Sprintf("编码响应失败: %v", err), http.StatusInternalServerError)
 		return
 	}
-
 }
 
 // Login 飞书登录处理 - 返回授权URL给前端
 func (h *FeishuHandler) Login(w http.ResponseWriter, r *http.Request) {
-	feishuConfig := config.GetFeishuConfig()
-
-	// 生成state参数防CSRF
-	state := fmt.Sprintf("%d", time.Now().UnixNano())
-
-	// 构建授权URL (使用官方推荐的v1 authorize endpoint)
-	// 注意：authorize使用v1，但token exchange使用v2
-	authURL := fmt.Sprintf("https://accounts.feishu.cn/open-apis/authen/v1/authorize?client_id=%s&redirect_uri=%s&response_type=code&state=%s",
-		feishuConfig.AppID,
-		feishuConfig.RedirectURI,
-		state)
+	authURL, state, err := h.authService.GenerateAuthURL()
+	if err != nil {
+		fmt.Printf("Failed to generate auth URL: %v\n", err)
+		http.Error(w, "Failed to generate login URL", http.StatusInternalServerError)
+		return
+	}
 
 	fmt.Printf("Generated authURL: %s\n", authURL)
 	fmt.Printf("State: %s\n", state)
@@ -197,8 +140,11 @@ func (h *FeishuHandler) ExchangeCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("Exchange code request received - Code: %s, State: %s\n",
-		requestData.Code[:min(len(requestData.Code), 10)]+"...", requestData.State)
+	codePreview := requestData.Code
+	if len(codePreview) > 10 {
+		codePreview = codePreview[:10] + "..."
+	}
+	fmt.Printf("Exchange code request received - Code: %s, State: %s\n", codePreview, requestData.State)
 
 	// 验证授权码
 	if requestData.Code == "" {
@@ -214,7 +160,7 @@ func (h *FeishuHandler) ExchangeCode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 用授权码换取用户信息
-	user, err := h.exchangeCodeForUser(requestData.Code)
+	user, err := h.authService.ExchangeCodeForUser(requestData.Code)
 	if err != nil {
 		fmt.Printf("Failed to exchange code for user: %v\n", err)
 		http.Error(w, fmt.Sprintf("Failed to authenticate: %v", err), http.StatusUnauthorized)
@@ -247,151 +193,16 @@ func (h *FeishuHandler) ExchangeCode(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// min helper function for Go versions that don't have it built-in
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-// exchangeCodeForUser 用授权码换取用户信息
-func (h *FeishuHandler) exchangeCodeForUser(code string) (*models.User, error) {
-	// 首先用授权码获取access token
-	token, err := h.getAccessTokenByCode(code)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get access token: %v", err)
-	}
-
-	// 使用access token获取用户信息
-	user, err := h.getUserInfo(token)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get user info: %v", err)
-	}
-
-	return user, nil
-}
-
-// getAccessTokenByCode 用授权码获取access token (使用OAuth2标准参数)
-func (h *FeishuHandler) getAccessTokenByCode(code string) (string, error) {
-	feishuConfig := config.GetFeishuConfig()
-
-	// 使用官方推荐的v2 API和OAuth2标准参数
-	requestData := map[string]string{
-		"grant_type":    "authorization_code",
-		"client_id":     feishuConfig.AppID,
-		"client_secret": feishuConfig.AppSecret,
-		"code":          code,
-		"redirect_uri":  feishuConfig.RedirectURI,
-	}
-
-	fmt.Printf("OAuth2 config: AppID=%s, RedirectURI=%s\n", feishuConfig.AppID, feishuConfig.RedirectURI)
-
-	requestBody, err := json.Marshal(requestData)
-	if err != nil {
-		fmt.Printf("Failed to marshal request data: %v\n", err)
-		return "", fmt.Errorf("failed to prepare request: %v", err)
-	}
-
-	fmt.Printf("Requesting access token with code: %s\n", code[:min(len(code), 20)]+"...")
-
-	// 使用v2 API endpoint (官方推荐)
-	tokenURL := feishuConfig.BaseURL + "/open-apis/authen/v2/oauth/token"
-	fmt.Printf("Token endpoint: %s\n", tokenURL)
-
-	resp, err := http.Post(
-		tokenURL,
-		"application/json",
-		strings.NewReader(string(requestBody)),
-	)
-	if err != nil {
-		fmt.Printf("Failed to request access token: %v\n", err)
-		return "", fmt.Errorf("failed to request access token: %v", err)
-	}
-	defer resp.Body.Close()
-
-	// 检查HTTP状态码
-	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("Access token request failed with status: %d\n", resp.StatusCode)
-		return "", fmt.Errorf("access token request failed with status: %d", resp.StatusCode)
-	}
-
-	// 读取响应体用于调试
-	respBody := make([]byte, 0)
-	var tokenResp models.FeishuOAuthTokenResponse
-	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
-		fmt.Printf("Failed to decode token response: %v\n", err)
-		fmt.Printf("Response body: %s\n", string(respBody))
-		return "", fmt.Errorf("failed to decode token response: %v", err)
-	}
-
-	fmt.Printf("Successfully obtained access token\n")
-	return tokenResp.AccessToken, nil
-}
-
-// getUserInfo 获取用户信息
-func (h *FeishuHandler) getUserInfo(accessToken string) (*models.User, error) {
-	feishuConfig := config.GetFeishuConfig()
-
-	fmt.Printf("Requesting user info with access token\n")
-
-	// 创建请求
-	req, err := http.NewRequest("GET", feishuConfig.BaseURL+"/open-apis/authen/v1/user_info", nil)
-	if err != nil {
-		fmt.Printf("Failed to create user info request: %v\n", err)
-		return nil, fmt.Errorf("failed to create request: %v", err)
-	}
-
-	// 设置Authorization头
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-
-	// 发送请求
-	client := &http.Client{
-		Timeout: 10 * time.Second, // 设置超时时间
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Printf("Failed to request user info: %v\n", err)
-		return nil, fmt.Errorf("failed to request user info: %v", err)
-	}
-	defer resp.Body.Close()
-
-	// 检查HTTP状态码
-	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("User info request failed with status: %d\n", resp.StatusCode)
-		return nil, fmt.Errorf("user info request failed with status: %d", resp.StatusCode)
-	}
-
-	var userResp models.FeishuUserInfoResponse
-	if err := json.NewDecoder(resp.Body).Decode(&userResp); err != nil {
-		fmt.Printf("Failed to decode user info response: %v\n", err)
-		return nil, fmt.Errorf("failed to decode user info response: %v", err)
-	}
-
-	if userResp.Code != 0 {
-		fmt.Printf("Feishu API error when getting user info: %s (code: %d)\n", userResp.Msg, userResp.Code)
-		return nil, fmt.Errorf("feishu API error: %s (code: %d)", userResp.Msg, userResp.Code)
-	}
-
-	fmt.Printf("Successfully obtained user info for: %s\n", userResp.Data.Name)
-
-	// 设置provider字段
-	user := userResp.Data
-	user.Provider = models.ProviderFeishu
-
-	return &user, nil
-}
-
 // GetCurrentUser 获取当前登录用户信息
 func (h *FeishuHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 	// 从上下文中获取用户信息
-	openID, ok := r.Context().Value("user_open_id").(string)
+	openID, ok := auth.GetUserOpenID(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
 		return
 	}
 
-	userName, _ := r.Context().Value("user_name").(string)
+	userName, _ := auth.GetUserName(r.Context())
 
 	user := models.User{
 		OpenID: openID,
