@@ -13,16 +13,20 @@ import (
 
 // DingTalkHandler 钉钉相关处理器
 type DingTalkHandler struct {
-	authService *dingtalk.AuthService
+	authService   *dingtalk.AuthService
+	reportService *dingtalk.ReportService
 }
 
 // NewDingTalkHandler 创建新的钉钉处理器
 func NewDingTalkHandler() *DingTalkHandler {
 	dingTalkConfig := config.GetDingTalkConfig()
 	authService := dingtalk.NewAuthService(dingTalkConfig)
+	dingtalkClient := dingtalk.NewClient(dingTalkConfig)
+	reportService := dingtalk.NewReportService(dingtalkClient)
 
 	return &DingTalkHandler{
-		authService: authService,
+		authService:   authService,
+		reportService: reportService,
 	}
 }
 
@@ -109,4 +113,23 @@ func (h *DingTalkHandler) ExchangeCode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Printf("DingTalk authentication successful for user: %s\n", user.Name)
+}
+
+func (h *DingTalkHandler) GetTemplates(w http.ResponseWriter, r *http.Request) {
+	openID, ok := auth.GetUserOpenID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	templates, err := h.reportService.GetTemplates(openID)
+	if err != nil {
+		http.Error(w, "Failed to get templates", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(templates); err != nil {
+		http.Error(w, "Failed to encode templates", http.StatusInternalServerError)
+		return
+	}
 }

@@ -121,3 +121,10 @@ type AuthResponse struct {
 	User      User     `json:"user"`
 	Provider  Provider `json:"provider"`
 }
+
+type DingTalkAccessTokenResponse struct {
+	ErrCode     int    `json:"errcode"`
+	AccessToken string `json:"access_token"`
+	ErrMsg      string `json:"errmsg"`
+	ExpiresIn   int    `json:"expires_in"`
+}

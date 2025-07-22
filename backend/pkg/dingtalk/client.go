@@ -27,6 +27,27 @@ func NewClient(config *models.DingTalkConfig) *Client {
 	}
 }
 
+func (c *Client) GetAccessToken() (*models.DingTalkAccessTokenResponse, error) {
+	url := "https://oapi.dingtalk.com/gettoken?appkey=" + c.config.AppKey + "&appsecret=" + c.config.AppSecret
+	resp, err := c.httpClient.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response body failed: %v", err)
+	}
+
+	var response models.DingTalkAccessTokenResponse
+	if err := json.Unmarshal(body, &response); err != nil {
+		return nil, fmt.Errorf("unmarshal response failed: %v", err)
+	}
+
+	return &response, nil
+}
+
 // GetUserAccessToken 通过授权码获取用户访问令牌
 func (c *Client) GetUserAccessToken(code string) (*models.DingTalkOAuthTokenResponse, error) {
 	url := "https://api.dingtalk.com/v1.0/oauth2/userAccessToken"
