@@ -75,7 +75,7 @@
 - **登出**: `POST /api/auth/logout` - 退出登录
 
 ### 模板接口 (需认证)
-- **URL**: `GET /api/rules`
+- **URL**: `GET /api/feishu/templates/detail`
 - **查询参数**:
   - `name`: 模板名称 (可选)
 

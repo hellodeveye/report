@@ -90,7 +90,7 @@ func (h *DingTalkHandler) ExchangeCode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 生成JWT token
-	token, expiresAt, err := auth.GenerateToken(user.OpenID, user.Name)
+	token, expiresAt, err := auth.GenerateToken(user.UserID, user.Name)
 	if err != nil {
 		fmt.Printf("Failed to generate JWT token: %v\n", err)
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
@@ -130,6 +130,32 @@ func (h *DingTalkHandler) GetTemplates(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(templates); err != nil {
 		http.Error(w, "Failed to encode templates", http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *DingTalkHandler) GetTemplateDetail(w http.ResponseWriter, r *http.Request) {
+	openID, ok := auth.GetUserOpenID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	templateName := r.URL.Query().Get("template_name")
+	if templateName == "" {
+		http.Error(w, "Missing template name", http.StatusBadRequest)
+		return
+	}
+
+	detail, err := h.reportService.GetTemplateDetail(openID, templateName)
+	if err != nil {
+		http.Error(w, "Failed to get template detail", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(detail); err != nil {
+		http.Error(w, "Failed to encode template detail", http.StatusInternalServerError)
 		return
 	}
 }

@@ -36,27 +36,12 @@ func NewFeishuHandler() *FeishuHandler {
 	}
 }
 
-// GetRuleDetail 获取报告规则详情
-func (h *FeishuHandler) GetRuleDetail(w http.ResponseWriter, r *http.Request) {
-	rules, err := h.reportService.QueryRuleDetail(`test-日报模版`)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("查询规则失败: %v", err), http.StatusInternalServerError)
-		return
-	}
+func (h *FeishuHandler) GetTemplates(w http.ResponseWriter, r *http.Request) {
 
-	// 设置响应头
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	// 返回响应
-	if err := json.NewEncoder(w).Encode(rules); err != nil {
-		http.Error(w, fmt.Sprintf("编码响应失败: %v", err), http.StatusInternalServerError)
-		return
-	}
 }
 
 // GetRules 获取报告规则
-func (h *FeishuHandler) GetRules(w http.ResponseWriter, r *http.Request) {
+func (h *FeishuHandler) GetTemplateDetail(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get("name")
 
 	rules, err := h.reportService.QueryRules(name)

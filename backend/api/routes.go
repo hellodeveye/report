@@ -36,9 +36,13 @@ func SetupRoutes() *mux.Router {
 	protected.Use(middleware.AuthMiddleware)
 
 	protected.HandleFunc("/auth/user", feishuHandler.GetCurrentUser).Methods("GET")
-	protected.HandleFunc("/rules", feishuHandler.GetRules).Methods("GET")
-	protected.HandleFunc("/rules/detail", feishuHandler.GetRuleDetail).Methods("GET")
+
 	protected.HandleFunc("/reports", feishuHandler.GetReports).Methods("GET")
 	protected.HandleFunc("/dingtalk/templates", dingTalkHandler.GetTemplates).Methods("GET")
+	protected.HandleFunc("/dingtalk/templates/detail", dingTalkHandler.GetTemplateDetail).Methods("GET")
+
+	protected.HandleFunc("/feishu/templates", feishuHandler.GetTemplates).Methods("GET")
+	protected.HandleFunc("/feishu/templates/detail", feishuHandler.GetTemplateDetail).Methods("GET")
+
 	return r
 }

@@ -178,7 +178,7 @@ export class FeishuApiService {
 
   // 通过API获取特定模板内容
   async getTemplateContent(templateName) {
-    const url = `${this.baseURL}/rules?name=${encodeURIComponent(templateName)}`;
+    const url = `${this.baseURL}/feishu/templates/detail?name=${encodeURIComponent(templateName)}`;
     const response = await authService.authenticatedFetch(url);
     
     if (!response.ok) {
