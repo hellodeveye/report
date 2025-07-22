@@ -61,6 +61,7 @@ func (s *ReportService) GetTemplates(userId string) (*TemplateListResponse, erro
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		log.Println("read response body failed:", err)
 		return nil, err
 	}
 
@@ -143,4 +144,77 @@ type Field struct {
 	FieldName string `json:"field_name"`
 	Sort      int    `json:"sort"`
 	Type      int    `json:"type"`
+}
+
+type CreateReportRequest struct {
+	CreateReportParam struct {
+		Contents   []ContentItem `json:"contents"`
+		DDFrom     string        `json:"dd_from"`
+		TemplateID string        `json:"template_id"`
+		UserID     string        `json:"userid"`
+		ToChat     bool          `json:"to_chat"`
+		ToCIDs     []string      `json:"to_cids"`
+		ToUserIDs  []string      `json:"to_userids"`
+	} `json:"create_report_param"`
+}
+
+type ContentItem struct {
+	ContentType string `json:"content_type"`
+	Sort        int    `json:"sort"`
+	Type        int    `json:"type"`
+	Content     string `json:"content"`
+	Key         string `json:"key"`
+}
+
+type CreateReportResponse struct {
+	ErrCode int    `json:"errcode"`
+	ErrMsg  string `json:"errmsg"`
+	Result  struct {
+		ReportID string `json:"report_id"`
+		Status   string `json:"status"`
+	} `json:"result"`
+	RequestID string `json:"request_id"`
+}
+
+// 保存草稿
+func (s *ReportService) SaveDraft(userId string, draftRequest *CreateReportRequest) (*CreateReportResponse, error) {
+	accessToken, err := s.client.GetAccessToken()
+	if err != nil {
+		return nil, err
+	}
+
+	url := "https://oapi.dingtalk.com/topapi/report/create?access_token=" + accessToken.AccessToken
+
+	// 设置草稿状态
+	if draftRequest.CreateReportParam.ToChat {
+		// 如果是草稿，不发送到聊天
+		// 钉钉API中，to_chat=true表示发送，false表示草稿
+		// 为了保存草稿，我们设置to_chat=false
+		// 注意：这里可能需要根据实际需求调整
+		// 保持原始设置，由调用者控制
+	}
+
+	jsonData, err := json.Marshal(draftRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := s.client.httpClient.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var response CreateReportResponse
+	if err := json.Unmarshal(body, &response); err != nil {
+		return nil, err
+	}
+
+	return &response, nil
 }

@@ -159,3 +159,30 @@ func (h *DingTalkHandler) GetTemplateDetail(w http.ResponseWriter, r *http.Reque
 		return
 	}
 }
+
+func (h *DingTalkHandler) SaveDraft(w http.ResponseWriter, r *http.Request) {
+	userID, ok := auth.GetUserOpenID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var requestData dingtalk.CreateReportRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	response, err := h.reportService.SaveDraft(userID, &requestData)
+	if err != nil {
+		http.Error(w, "Failed to save draft", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+}
