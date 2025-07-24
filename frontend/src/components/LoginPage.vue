@@ -14,19 +14,17 @@
 
       <!-- 登录按钮 -->
       <div class="space-y-4">
-        <!-- 飞书登录按钮 -->
-        <button 
-          @click="() => handleLogin('feishu')" 
-          :disabled="isLoading"
-          class="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-lg text-white font-semibold bg-indigo-500 hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+        <!-- 飞书登录 -->
+        <button @click="handleLogin('feishu')"
+                class="w-full flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-75">
           <svg v-if="isLoading && currentProvider === 'feishu'" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          <svg v-else class="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 22C6.486 22 2 17.514 2 12S6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/>
-            <path d="M8 7h8v2H8V7zm0 4h8v2H8v-2zm0 4h8v2H8v-2z"/>
+          <svg v-else class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12.59 13.92L7.74 19.4a.9.9 0 01-1.27 0l-1.9-1.9a.9.9 0 010-1.28l10.3-10.3a.9.9 0 011.27 0l1.9 1.9a.9.9 0 010 1.27L12.59 13.92z" />
+            <path d="M18.91 4.5l-1.9-1.9a.9.9 0 00-1.27 0L5.44 12.9a.9.9 0 000 1.28l1.9 1.9" />
+            <path d="M14.73 3.23l1.9 1.9a.9.9 0 010 1.27L8.98 14.05" />
           </svg>
           {{ (isLoading && currentProvider === 'feishu') ? '正在跳转...' : '使用飞书登录' }}
         </button>
@@ -41,9 +39,8 @@
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          <svg v-else class="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M22 12.65C22 6.45 17.55 2 11.35 2S.7 6.45.7 12.65C.7 18.85 5.15 23.3 11.35 23.3S22 18.85 22 12.65zM3.5 12.65C3.5 8 7.35 4.15 12 4.15s8.5 3.85 8.5 8.5-3.85 8.5-8.5 8.5-8.5-3.85-8.5-8.5z"/>
-            <path d="M16.5 12.2c-.8-.4-1.3-.6-1.3-1.1 0-.3.2-.6.8-.6.5 0 1 .2 1.5.5l.7-1.3c-.7-.4-1.5-.7-2.3-.7-1.3 0-2.3.8-2.3 2 0 1.3 1 1.8 2 2.3.8.4 1.2.6 1.2 1.1 0 .4-.3.7-.9.7-.6 0-1.2-.3-1.7-.6l-.8 1.3c.7.5 1.6.8 2.5.8 1.4 0 2.4-.8 2.4-2.1 0-1.4-1-1.9-1.8-2.3z"/>
+          <svg v-else class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M22.46,6C21.64,6.35,20.76,6.58,19.83,6.69C20.79,6.11,21.5,5.26,21.84,4.24C21,4.72,20.06,5.08,19.07,5.32C18.25,4.45,17,4,15.61,4C13,4,10.9,6.1,10.9,8.71c0,0.36,0.04,0.71,0.12,1.06C7.23,9.58,3.84,7.84,1.5,5.13C1.1,5.78,0.89,6.54,0.89,7.38c0,1.56,0.81,2.94,2.03,3.76 C2.17,11.08,1.47,10.85,0.87,10.5v0.03c0,2.18,1.54,4,3.57,4.42C4.12,15,3.75,15.06,3.36,15.06c-0.28,0-0.56-0.03-0.82-0.08 c0.57,1.78,2.24,3.08,4.22,3.12C5.29,19.34,3.6,19.98,1.77,19.98c-0.3,0-0.6-0.02-0.89-0.05C2.8,20.89,5.01,21.6,7.38,21.6 c7.8,0,12.07-6.46,12.07-12.07c0-0.18,0-0.37-0.01-0.55C20.35,8.24,21.01,7.52,21.5,6.72c-0.74,0.33-1.53,0.55-2.36,0.65 c0.85-0.51,1.5-1.32,1.81-2.27L21.5,6.72z" />
           </svg>
           {{ (isLoading && currentProvider === 'dingtalk') ? '正在跳转...' : '使用钉钉登录' }}
         </button>

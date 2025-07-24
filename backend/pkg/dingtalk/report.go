@@ -74,6 +74,80 @@ func (s *ReportService) GetTemplates(userId string) (*TemplateListResponse, erro
 	return &response, nil
 }
 
+type ReportContent struct {
+	Key   string `json:"key"`
+	Sort  string `json:"sort"`
+	Type  string `json:"type"`
+	Value string `json:"value"`
+}
+
+type ReportData struct {
+	Contents     []ReportContent `json:"contents"`
+	CreateTime   int64           `json:"create_time"`
+	CreatorID    string          `json:"creator_id"`
+	CreatorName  string          `json:"creator_name"`
+	DeptName     string          `json:"dept_name"`
+	ModifiedTime int64           `json:"modified_time"`
+	ReportID     string          `json:"report_id"`
+	TemplateName string          `json:"template_name"`
+}
+
+type ReportListResult struct {
+	DataList   []ReportData `json:"data_list"`
+	HasMore    bool         `json:"has_more"`
+	NextCursor int64        `json:"next_cursor"`
+	Size       int          `json:"size"`
+}
+
+type ReportListResponse struct {
+	ErrCode   int              `json:"errcode"`
+	ErrMsg    string           `json:"errmsg"`
+	Result    ReportListResult `json:"result"`
+	RequestID string           `json:"request_id"`
+}
+
+func (s *ReportService) GetReports(userID string, templateName string, startTime, endTime int64, cursor, size int) (*ReportListResponse, error) {
+	accessToken, err := s.client.GetAccessToken()
+	if err != nil {
+		return nil, err
+	}
+
+	url := "https://oapi.dingtalk.com/topapi/report/list?access_token=" + accessToken.AccessToken
+
+	requestBody := map[string]interface{}{
+		"userid":        userID,
+		"template_name": templateName,
+		"start_time":    startTime,
+		"end_time":      endTime,
+		"cursor":        cursor,
+		"size":          size,
+	}
+
+	jsonData, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := s.client.httpClient.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var response ReportListResponse
+	if err := json.Unmarshal(body, &response); err != nil {
+		log.Printf("Failed to unmarshal DingTalk report list response. Body: %s", string(body))
+		return nil, err
+	}
+
+	return &response, nil
+}
+
 // 获取模板详情
 func (s *ReportService) GetTemplateDetail(userId, template_name string) (*TemplateDetailResponse, error) {
 	accessToken, err := s.client.GetAccessToken()

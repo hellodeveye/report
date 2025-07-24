@@ -55,6 +55,8 @@
 import { ref, onMounted } from 'vue';
 import { authService } from '../utils/authService.js';
 
+const emit = defineEmits(['login-success', 'login-failure']);
+
 const isProcessing = ref(true);
 const isSuccess = ref(false);
 const userInfo = ref(null);
@@ -74,9 +76,9 @@ onMounted(async () => {
     isSuccess.value = true;
     userInfo.value = authData.user;
     
-    // 2秒后跳转到主页
+    // 2秒后通知父组件登录成功
     setTimeout(() => {
-      window.location.href = '/';
+      emit('login-success');
     }, 2000);
     
   } catch (error) {
@@ -86,6 +88,7 @@ onMounted(async () => {
     isSuccess.value = false;
     errorMessage.value = '登录验证失败，请重试';
     errorDetails.value = error.message || '未知错误';
+    emit('login-failure');
   }
 });
 

@@ -1,24 +1,30 @@
 <script setup>
 import { ref, defineEmits, defineProps, onMounted, computed } from 'vue';
-import { aiService, MODELS_CONFIG } from '../utils/aiService.js';
+import { aiService, MODELS_CONFIG } from '../utils/aiUtils.js';
 
 const props = defineProps({
   currentUser: {
     type: Object,
-    default: () => ({})
+    default: () => null
   }
 });
 
-const emit = defineEmits(['close', 'notify']);
+const emit = defineEmits(['close', 'save-settings']);
 
-const tabs = ref([
-  { id: 'account', name: '账户资料', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
-  { id: 'model', name: '模型设置', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
-  { id: 'appearance', name: '外观', icon: 'M4 20h16a2 2 0 002-2V6a2 2 0 00-2-2H4a2 2 0 00-2 2v12a2 2 0 002 2zM8 12a4 4 0 108 0 4 4 0 00-8 0z' },
-  { id: 'notifications', name: '通知', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' },
-  { id: 'language', name: '语言', icon: 'M3 5h12M9 3v2m0 4h.01M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
-]);
 const activeTab = ref('account');
+const tabs = [
+  { id: 'account', name: '账户资料', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
+  { id: 'model', name: '模型设置', icon: 'M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 10-3.86.517l-.318.158a6 6 0 00-3.86.517L6.05 15.428a2 2 0 00-1.82.875 2 2 0 00.166 2.304l.558.837a6 6 0 1011.9.001l.558-.836a2 2 0 00.166-2.304z' },
+  { id: 'appearance', name: '外观', icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.373 3.373 0 0012 18.443V21' },
+  { id: 'notifications', name: '通知', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' },
+  { id: 'language', name: '语言', icon: 'M3 5h12M9 3v2m4.25 16a4.25 4.25 0 000-8.5M15 12a4.25 4.25 0 00-8.5 0M12.5 17h-5' },
+];
+
+const aiConfig = ref({
+  provider: 'deepseek',
+  apiKey: '',
+  model: 'deepseek-chat',
+});
 
 const settings = ref({
   darkMode: false,
@@ -29,11 +35,19 @@ const settings = ref({
   language: 'zh-cn',
 });
 
-const aiConfig = ref({
-  provider: 'deepseek',
-  apiKey: '',
-  model: '',
-});
+const onProviderChange = () => {
+  const provider = aiConfig.value.provider;
+  if (MODELS_CONFIG[provider] && MODELS_CONFIG[provider].models.length > 0) {
+    aiConfig.value.model = MODELS_CONFIG[provider].models[0].id;
+  }
+};
+
+const saveSettings = () => {
+  aiService.saveSettings(aiConfig.value);
+  // Here you would also save other settings (appearance, notifications, etc.)
+  emit('save-settings', { ...settings.value, ai: aiConfig.value });
+  emit('close');
+};
 
 const selectedProviderModels = computed(() => {
   return MODELS_CONFIG[aiConfig.value.provider]?.models || [];
@@ -42,28 +56,6 @@ const selectedProviderModels = computed(() => {
 onMounted(() => {
   aiConfig.value = aiService.getSettings();
 });
-
-const onProviderChange = () => {
-  const newModels = MODELS_CONFIG[aiConfig.value.provider]?.models || [];
-  if (newModels.length > 0) {
-    aiConfig.value.model = newModels[0].id;
-  } else {
-    aiConfig.value.model = '';
-  }
-};
-
-const saveSettings = () => {
-  // Atomically save all AI settings
-  aiService.saveSettings(aiConfig.value);
-
-  // 在这里实现保存其他设置的逻辑
-  console.log('Settings saved:', settings.value);
-  emit('notify', {
-    title: '设置已保存',
-    description: '您的更改已成功应用。',
-    type: 'success',
-  });
-};
 </script>
 
 <template>

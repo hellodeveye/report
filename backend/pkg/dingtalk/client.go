@@ -128,3 +128,45 @@ func (c *Client) GetUserInfo(accessToken string) (*models.DingTalkUserInfoRespon
 
 	return &userResp, nil
 }
+
+func (c *Client) GetUserByUnionId(accessToken string, unionId string) (*models.DingTalkUserByUnionIdResponse, error) {
+	url := "https://oapi.dingtalk.com/topapi/user/getbyunionid?access_token=" + accessToken
+
+	requestBody := map[string]string{
+		"unionid": unionId,
+	}
+
+	jsonData, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("marshal request body failed: %v", err)
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("create request failed: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response body failed: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var userResp models.DingTalkUserByUnionIdResponse
+	if err := json.Unmarshal(body, &userResp); err != nil {
+		return nil, fmt.Errorf("unmarshal response failed: %v", err)
+	}
+
+	return &userResp, nil
+}

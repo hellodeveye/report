@@ -39,6 +39,7 @@ func SetupRoutes() *mux.Router {
 
 	protected.HandleFunc("/dingtalk/templates", dingTalkHandler.GetTemplates).Methods("GET")
 	protected.HandleFunc("/dingtalk/templates/detail", dingTalkHandler.GetTemplateDetail).Methods("GET")
+	protected.HandleFunc("/dingtalk/reports", dingTalkHandler.GetReports).Methods("GET")
 	protected.HandleFunc("/dingtalk/reports/drafts", dingTalkHandler.SaveDraft).Methods("POST")
 
 	protected.HandleFunc("/feishu/templates", feishuHandler.GetTemplates).Methods("GET")

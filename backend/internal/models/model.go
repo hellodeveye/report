@@ -40,7 +40,7 @@ type FeishuConfig struct {
 type User struct {
 	OpenID   string   `json:"open_id"`
 	UnionID  string   `json:"union_id"`
-	UserID   string   `json:"user_id"`
+	UserID   string   `json:"userid"`
 	Name     string   `json:"name"`
 	Avatar   string   `json:"avatar_url"`
 	Email    string   `json:"email"`
@@ -90,6 +90,7 @@ type DingTalkOAuthTokenResponse struct {
 
 // DingTalkUserInfoResponse 钉钉用户信息响应
 type DingTalkUserInfoResponse struct {
+	UserID    string `json:"userid"`
 	Nick      string `json:"nick"`
 	AvatarUrl string `json:"avatarUrl"`
 	Mobile    string `json:"mobile"`
@@ -127,4 +128,35 @@ type DingTalkAccessTokenResponse struct {
 	AccessToken string `json:"access_token"`
 	ErrMsg      string `json:"errmsg"`
 	ExpiresIn   int    `json:"expires_in"`
+}
+
+// TemplateInfo 模板信息
+type TemplateInfo struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// DingTalkUserByUnionIdResponse 钉钉通过UnionID获取用户响应
+type DingTalkUserByUnionIdResponse struct {
+	ErrCode int    `json:"errcode"`
+	ErrMsg  string `json:"errmsg"`
+	Result  struct {
+		ContactType int    `json:"contact_type"`
+		UserID      string `json:"userid"`
+	} `json:"result"`
+	RequestID string `json:"request_id"`
+}
+
+type DingTalkTemplate struct {
+	Name       string `json:"name"`
+	ReportCode string `json:"report_code"`
+}
+
+type DingTalkTemplateResponse struct {
+	ErrCode int    `json:"errcode"`
+	ErrMsg  string `json:"errmsg"`
+	Result  struct {
+		TemplateList []DingTalkTemplate `json:"template_list"`
+	} `json:"result"`
+	RequestID string `json:"request_id"`
 }

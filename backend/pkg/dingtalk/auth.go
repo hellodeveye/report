@@ -50,6 +50,17 @@ func (s *AuthService) ExchangeCodeForUser(code string) (*models.User, error) {
 		return nil, fmt.Errorf("failed to get user info: %v", err)
 	}
 
+	accessToken, err := s.client.GetAccessToken()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get access token: %v", err)
+	}
+
+	userByUnionIdResp, err := s.client.GetUserByUnionId(accessToken.AccessToken, userResp.UnionId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user by union id: %v", err)
+	}
+	userResp.UserID = userByUnionIdResp.Result.UserID
+
 	// 3. 转换为统一的用户模型
 	user := s.convertToUser(userResp)
 	return user, nil
@@ -60,7 +71,7 @@ func (s *AuthService) convertToUser(userResp *models.DingTalkUserInfoResponse) *
 	return &models.User{
 		OpenID:   userResp.OpenId,         // 钉钉的openId
 		UnionID:  userResp.UnionId,        // 钉钉的unionId
-		UserID:   userResp.OpenId,         // 使用openId作为UserID
+		UserID:   userResp.UserID,         // 使用openId作为UserID
 		Name:     userResp.Nick,           // 用户昵称
 		Avatar:   userResp.AvatarUrl,      // 头像URL
 		Email:    userResp.Email,          // 邮箱地址

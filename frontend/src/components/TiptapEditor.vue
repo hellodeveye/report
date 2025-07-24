@@ -89,7 +89,7 @@ import TextAlign from '@tiptap/extension-text-align';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import { watch, ref, onUnmounted } from 'vue';
-import { aiService, AI_PROMPTS } from '../utils/aiService.js';
+import { aiService, AI_PROMPTS } from '../utils/aiUtils.js';
 
 const props = defineProps({
   modelValue: { type: String, default: '' },

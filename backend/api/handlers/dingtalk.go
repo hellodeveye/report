@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/hellodeveye/report/internal/config"
 	"github.com/hellodeveye/report/internal/models"
@@ -183,6 +184,73 @@ func (h *DingTalkHandler) SaveDraft(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *DingTalkHandler) GetReports(w http.ResponseWriter, r *http.Request) {
+	userID, ok := auth.GetUserOpenID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	templateName := r.URL.Query().Get("template_name")
+	if templateName == "" {
+		http.Error(w, "template_name is required", http.StatusBadRequest)
+		return
+	}
+	startTimeStr := r.URL.Query().Get("start_time")
+	endTimeStr := r.URL.Query().Get("end_time")
+	cursorStr := r.URL.Query().Get("cursor")
+	sizeStr := r.URL.Query().Get("size")
+
+	var startTime, endTime int64
+	var cursor, size int
+	var err error
+
+	if startTimeStr != "" {
+		startTime, err = strconv.ParseInt(startTimeStr, 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid start_time", http.StatusBadRequest)
+			return
+		}
+	}
+	if endTimeStr != "" {
+		endTime, err = strconv.ParseInt(endTimeStr, 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid end_time", http.StatusBadRequest)
+			return
+		}
+	}
+	if cursorStr != "" {
+		cursor, err = strconv.Atoi(cursorStr)
+		if err != nil {
+			http.Error(w, "Invalid cursor", http.StatusBadRequest)
+			return
+		}
+	} else {
+		cursor = 0
+	}
+	if sizeStr != "" {
+		size, err = strconv.Atoi(sizeStr)
+		if err != nil {
+			http.Error(w, "Invalid size", http.StatusBadRequest)
+			return
+		}
+	} else {
+		size = 20 // Default size
+	}
+
+	reportsResponse, err := h.reportService.GetReports(userID, templateName, startTime*1000, endTime*1000, cursor, size)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to get reports: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(reportsResponse); err != nil {
+		http.Error(w, "Failed to encode reports", http.StatusInternalServerError)
 		return
 	}
 }

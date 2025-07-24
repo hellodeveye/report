@@ -36,8 +36,19 @@ func NewFeishuHandler() *FeishuHandler {
 	}
 }
 
+// GetTemplates 获取模板列表
 func (h *FeishuHandler) GetTemplates(w http.ResponseWriter, r *http.Request) {
+	templates := []models.TemplateInfo{
+		{ID: "monthly_report", Name: "工作月报"},
+		{ID: "daily_report", Name: "技术部-工作日报"},
+		{ID: "daily_scrum", Name: "每日站会"},
+		{ID: "complex_template", Name: "复杂模板"},
+	}
 
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(templates); err != nil {
+		http.Error(w, "Failed to encode templates", http.StatusInternalServerError)
+	}
 }
 
 // GetRules 获取报告规则
