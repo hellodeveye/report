@@ -154,19 +154,24 @@ class ApiService {
                 }))
             }));
         } else if (provider === 'dingtalk') {
-            if (!data || !Array.isArray(data)) {
+            if (!data || !data.result || !Array.isArray(data.result.data_list)) {
                 console.warn('钉钉API返回的数据格式不正确:', data);
                 return [];
             }
-            return data.map(report => ({
-                ...report,
+            return data.result.data_list.map(report => ({
+                id: report.report_id,
+                title: `${report.template_name} - ${report.creator_name} (${new Date(report.create_time).toLocaleString('zh-CN')})`,
                 isCollapsed: true,
+                fields: (report.contents || []).map(content => ({
+                    name: content.key,
+                    value: content.value,
+                    type: 'tiptap'
+                }))
             }));
         }
 
-        // Handle DingTalk report format
-        // Assuming it's already in the desired format or needs transformation
-        return data;
+        // Fallback for any other case
+        return [];
     }
 
     // 字段类型映射
