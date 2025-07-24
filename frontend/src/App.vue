@@ -5,6 +5,7 @@ import TiptapViewer from './components/TiptapViewer.vue';
 import VueTailwindDatepicker from 'vue-tailwind-datepicker';
 import LoginPage from './components/LoginPage.vue';
 import AuthCallback from './components/AuthCallback.vue';
+import SettingsPage from './components/SettingsPage.vue';
 import { feishuApiService, reportSummarizer, aiService } from './utils/aiService.js';
 import { authService } from './utils/authService.js';
 
@@ -13,6 +14,7 @@ import { authService } from './utils/authService.js';
 const isAuthenticated = ref(false);
 const currentUser = ref(null);
 const showAuthCallback = ref(false);
+const showSettingsPage = ref(false);
 const isLoading = ref(false);
 const loadingText = ref('正在加载...');
 
@@ -29,10 +31,6 @@ const dateValue = ref({
 const isProfileMenuOpen = ref(false);
 const profileMenuNode = ref(null);
 const notifications = ref([]);
-const showApiKeyDialog = ref(false);
-const tempApiKey = ref('');
-const apiKeyDialogReason = ref('');
-const pendingAction = ref(null);
 
 onMounted(async () => {
   document.addEventListener('click', (event) => {
@@ -44,8 +42,8 @@ onMounted(async () => {
   // 添加键盘事件监听器
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
-      if (showApiKeyDialog.value) {
-        cancelApiKeyDialog();
+      if (showSettingsPage.value) {
+        showSettingsPage.value = false;
       }
     }
   });
@@ -351,9 +349,14 @@ const getReports = async () => {
 const generateDraft = async () => {
   if (!currentTemplate.value) return;
   
-  // 检查 API Key - 生成草稿功能始终需要API Key
+  // 检查 API Key
   if (!aiService.hasApiKey()) {
-    openApiKeyDialog('ai_generate', () => generateDraft());
+    addNotification(
+      '需要配置AI模型',
+      '请先前往“设置”页面配置您的AI提供商和API Key。',
+      'error',
+      5000
+    );
     return;
   }
   
@@ -517,48 +520,13 @@ const formatFileSize = (bytes) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-// API Key 相关方法
-const openApiKeyDialog = (reason = '', action = null) => {
-  isProfileMenuOpen.value = false; // 关闭菜单
-  showApiKeyDialog.value = true;
-  apiKeyDialogReason.value = reason;
-  pendingAction.value = action;
-  // 如果已有API Key，显示部分内容
-  if (aiService.hasApiKey()) {
-    tempApiKey.value = aiService.getApiKey().substring(0, 10) + '...';
-  } else {
-    tempApiKey.value = '';
-  }
-};
-
-const saveApiKey = () => {
-  if (tempApiKey.value.trim()) {
-    aiService.setApiKey(tempApiKey.value.trim());
-    addNotification('API Key 已保存', '已成功保存 DeepSeek API Key，现在可以使用AI功能了！', 'success');
-    
-    // 保存待执行的操作
-    const actionToExecute = pendingAction.value;
-    
-    // 清理状态
-    showApiKeyDialog.value = false;
-    tempApiKey.value = '';
-    apiKeyDialogReason.value = '';
-    pendingAction.value = null;
-    
-    // 执行待执行的操作
-    if (actionToExecute && typeof actionToExecute === 'function') {
-      setTimeout(() => {
-        actionToExecute();
-      }, 100); // 短暂延迟确保对话框已关闭
-    }
-  }
-};
-
-const cancelApiKeyDialog = () => {
-  showApiKeyDialog.value = false;
-  tempApiKey.value = '';
-  apiKeyDialogReason.value = '';
-  pendingAction.value = null;
+const handleShowApiKeyConfig = () => {
+  addNotification(
+    '需要配置AI模型',
+    '请先前往“设置”页面配置您的AI提供商和API Key。',
+    'error',
+    5000
+  );
 };
 
 </script>
@@ -612,26 +580,36 @@ const cancelApiKeyDialog = () => {
   <div v-else class="min-h-screen w-full flex items-center justify-center p-4 bg-gray-900/10">
     <div class="w-full max-w-screen-2xl h-[90vh] bg-white/60 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-white/30 relative">
       
-      <!-- Loading Overlay -->
-      <div v-if="isLoading" class="absolute inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-50 rounded-2xl">
-        <div class="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-2xl p-8 shadow-xl border border-white/30">
-          <svg class="animate-spin h-12 w-12 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <span class="mt-4 text-gray-800 text-lg font-semibold">{{ loadingText }}</span>
-        </div>
-      </div>
+      <!-- Settings Page -->
+      <SettingsPage
+        v-if="showSettingsPage"
+        :current-user="currentUser"
+        @close="showSettingsPage = false"
+        @notify="(notification) => addNotification(notification.title, notification.description, notification.type)"
+      />
       
-      <header class="flex-shrink-0 flex items-center justify-between border-b border-white/30 shadow-sm z-10 p-4">
-        <h1 class="text-xl font-bold text-gray-800">{{ getProviderDisplayName(currentUser?.provider) }}报告助手</h1>
+      <!-- Main Content -->
+      <template v-else>
+        <!-- Loading Overlay -->
+        <div v-if="isLoading" class="absolute inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-50 rounded-2xl">
+          <div class="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-2xl p-8 shadow-xl border border-white/30">
+            <svg class="animate-spin h-12 w-12 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="mt-4 text-gray-800 text-lg font-semibold">{{ loadingText }}</span>
+          </div>
+        </div>
         
-        <!-- User Profile Section -->
-        <div class="flex items-center space-x-3">
-                      <div class="relative" ref="profileMenuNode">
-            <button @click="isProfileMenuOpen = !isProfileMenuOpen" 
-                    class="flex items-center space-x-2 p-2 rounded-lg transition-colors duration-200"
-                    :class="[isProfileMenuOpen ? 'bg-gray-500/20' : 'hover:bg-gray-500/10']">
+        <header class="flex-shrink-0 flex items-center justify-between border-b border-white/30 shadow-sm z-10 p-4">
+          <h1 class="text-xl font-bold text-gray-800">{{ getProviderDisplayName(currentUser?.provider) }}报告助手</h1>
+          
+          <!-- User Profile Section -->
+          <div class="flex items-center space-x-3">
+            <div class="relative" ref="profileMenuNode">
+              <button @click="isProfileMenuOpen = !isProfileMenuOpen" 
+                      class="flex items-center space-x-2 p-2 rounded-lg transition-colors duration-200"
+                      :class="[isProfileMenuOpen ? 'bg-gray-500/20' : 'hover:bg-gray-500/10']">
               <!-- 用户头像 -->
               <img v-if="currentUser?.avatar_url" 
                    :src="currentUser.avatar_url" 
@@ -685,27 +663,9 @@ const cancelApiKeyDialog = () => {
                 
                 <!-- 菜单项 -->
                 <div class="py-1">
-                  <a href="#" @click.prevent="openApiKeyDialog" class="flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-white/50 transition-colors">
-                    <div class="flex items-center">
-                      <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m0 0a2 2 0 012 2m-2-2h-4m-2 1v-3m0 0a2 2 0 00-2-2m2 2H9m0 0H7m2 0v3M9 7h4"></path>
-                      </svg>
-                      <span>API Key配置</span>
-                    </div>
-                    <span v-if="aiService.hasApiKey()" class="w-2 h-2 bg-green-500 rounded-full"></span>
-                    <span v-else class="w-2 h-2 bg-gray-300 rounded-full"></span>
-                  </a>
-                  
-                  <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-white/50 transition-colors">
+                  <a href="#" @click.prevent="showSettingsPage = true; isProfileMenuOpen = false" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-white/50 transition-colors">
                     <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                    </svg>
-                    <span>个人资料</span>
-                  </a>
-                  
-                  <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-white/50 transition-colors">
-                    <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826 3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                     </svg>
                     <span>设置</span>
@@ -724,221 +684,179 @@ const cancelApiKeyDialog = () => {
               </div>
             </transition>
           </div>
-        </div>
-      </header>
-      
-      <main class="flex-grow flex flex-col overflow-hidden">
-        <!-- Top Controls Section -->
-        <section class="flex-shrink-0 border-b border-white/30 p-4">
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                <div>
-                    <label for="source_template" class="text-sm font-medium text-gray-700">源模板:</label>
-                    <select id="source_template" v-model="selectedSourceTemplateId" class="mt-1 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white/80">
-                        <option v-for="template in templates" :key="template.id" :value="template.id">
-                            {{ template.name }}
-                        </option>
-                    </select>
-                </div>
-                <div>
-                  <label for="date" class="text-sm font-medium text-gray-700">报告周期:</label>
-                  <VueTailwindDatepicker
-                      id="date"
-                      v-model="dateValue"
-                      :formatter="{ date: 'YYYY-MM-DD', month: 'MMM' }"
-                      i18n="zh-cn"
-                      placeholder="选择日期范围"
-                      :shortcuts="datePickerShortcuts"
-                      :options="datePickerOptions"
-                      :auto-apply="true"
-                      class="mt-1 w-full"
-                  />
-                </div>
-                <div>
-                    <label for="template" class="text-sm font-medium text-gray-700">目标模板</label>
-                    <select id="template" v-model="selectedTemplateId" class="mt-1 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white/80">
-                        <option v-for="template in templates" :key="template.id" :value="template.id">
-                            {{ template.name }}
-                        </option>
-                    </select>
-                </div>
-                <div class="md:col-span-2 flex space-x-2 items-end">
-                  <button @click="getReports" class="w-full px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-white/30 text-gray-800 backdrop-blur-sm border border-white/40 shadow-lg hover:bg-white/50 hover:text-gray-900 focus:outline-none">
-                    获取报告
-                  </button>
-                  <button @click="generateDraft" class="w-full px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-indigo-500/20 text-indigo-800 backdrop-blur-sm border border-indigo-500/30 shadow-lg hover:bg-indigo-500/40 hover:text-indigo-900 focus:outline-none">
-                    生成草稿
-                  </button>
-                  <!-- <button @click="addNotification('发送成功', '报告已提交，请在飞书中查收。')" class="w-full px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-blue-500/20 text-blue-800 backdrop-blur-sm border border-blue-500/30 shadow-lg hover:bg-blue-500/40 hover:text-blue-900 focus:outline-none">
-                    发送到飞书
-                  </button> -->
-                </div>
-            </div>
-        </section>
+          </div>
+        </header>
         
-        <div class="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4 p-4 overflow-hidden">
-            <!-- Left Column: Source Reports -->
-            <section class="bg-white/50 backdrop-blur-sm rounded-lg shadow-md flex flex-col overflow-hidden border border-white/20">
-                <h2 class="text-lg font-semibold p-4 border-b border-white/20">报告内容</h2>
-                <div class="overflow-y-auto flex-grow p-4 space-y-2">
-                    <div v-if="sourceReports.length === 0" class="text-gray-500 text-center pt-10">报告内容将在此处显示。</div>
-                    <div v-for="report in sourceReports" :key="report.id" class="border rounded-md">
-                        <div @click="toggleReportDetail(report)" class="p-3 flex justify-between items-center cursor-pointer hover:bg-gray-50">
-                            <h3 class="font-semibold">{{ report.title }}</h3>
-                            <svg class="w-5 h-5 transition-transform" :class="{'rotate-180': !report.isCollapsed}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
-                        </div>
-                        <div v-if="!report.isCollapsed" class="p-4 border-t border-white/20 prose max-w-none text-sm">
-                          <div v-for="field in report.fields" :key="field.name" class="mb-3">
-                              <b class="text-gray-700">{{ field.name }}:</b>
-                              
-                              <div v-if="field.type === 'image'" class="mt-2 grid grid-cols-4 gap-2">
-                                  <div v-for="file in (field.value || [])" :key="file.name" class="relative">
-                                    <img :src="file.url" alt="图片预览" class="w-full h-auto rounded-md shadow-md border border-gray-200" />
-                                  </div>
-                              </div>
-                              <div v-else-if="field.type === 'attachment'" class="mt-1 space-y-2">
-                                  <div v-for="file in (field.value || [])" :key="file.name">
-                                      <a :href="file.url" target="_blank" class="text-indigo-600 hover:underline">{{ file.name }} ({{ formatFileSize(file.size) }})</a>
-                                  </div>
-                              </div>
-                              <div v-else-if="field.type === 'multiSelect'" class="inline-flex flex-wrap gap-2 mt-1">
-                                <span v-for="item in (field.value || [])" :key="item" class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-xs">{{ item }}</span>
-                              </div>
-                              <div v-else-if="field.type === 'tiptap'" class="mt-1">
-                                <TiptapViewer :content="field.value" />
-                              </div>
-                              <span v-else class="ml-2 text-gray-800">{{ field.value }}</span>
+        <main class="flex-grow flex flex-col overflow-hidden">
+          <!-- Top Controls Section -->
+          <section class="flex-shrink-0 border-b border-white/30 p-4">
+              <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                  <div>
+                      <label for="source_template" class="text-sm font-medium text-gray-700">源模板:</label>
+                      <select id="source_template" v-model="selectedSourceTemplateId" class="mt-1 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white/80">
+                          <option v-for="template in templates" :key="template.id" :value="template.id">
+                              {{ template.name }}
+                          </option>
+                      </select>
+                  </div>
+                  <div>
+                    <label for="date" class="text-sm font-medium text-gray-700">报告周期:</label>
+                    <VueTailwindDatepicker
+                        id="date"
+                        v-model="dateValue"
+                        :formatter="{ date: 'YYYY-MM-DD', month: 'MMM' }"
+                        i18n="zh-cn"
+                        placeholder="选择日期范围"
+                        :shortcuts="datePickerShortcuts"
+                        :options="datePickerOptions"
+                        :auto-apply="true"
+                        class="mt-1 w-full"
+                    />
+                  </div>
+                  <div>
+                      <label for="template" class="text-sm font-medium text-gray-700">目标模板</label>
+                      <select id="template" v-model="selectedTemplateId" class="mt-1 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white/80">
+                          <option v-for="template in templates" :key="template.id" :value="template.id">
+                              {{ template.name }}
+                          </option>
+                      </select>
+                  </div>
+                  <div class="md:col-span-2 flex space-x-2 items-end">
+                    <button @click="getReports" class="w-full px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-white/30 text-gray-800 backdrop-blur-sm border border-white/40 shadow-lg hover:bg-white/50 hover:text-gray-900 focus:outline-none">
+                      获取报告
+                    </button>
+                    <button @click="generateDraft" class="w-full px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-indigo-500/20 text-indigo-800 backdrop-blur-sm border border-indigo-500/30 shadow-lg hover:bg-indigo-500/40 hover:text-indigo-900 focus:outline-none">
+                      生成草稿
+                    </button>
+                    <!-- <button @click="addNotification('发送成功', '报告已提交，请在飞书中查收。')" class="w-full px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-blue-500/20 text-blue-800 backdrop-blur-sm border border-blue-500/30 shadow-lg hover:bg-blue-500/40 hover:text-blue-900 focus:outline-none">
+                      发送到飞书
+                    </button> -->
+                  </div>
+              </div>
+          </section>
+          
+          <div class="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4 p-4 overflow-hidden">
+              <!-- Left Column: Source Reports -->
+              <section class="bg-white/50 backdrop-blur-sm rounded-lg shadow-md flex flex-col overflow-hidden border border-white/20">
+                  <h2 class="text-lg font-semibold p-4 border-b border-white/20">报告内容</h2>
+                  <div class="overflow-y-auto flex-grow p-4 space-y-2">
+                      <div v-if="sourceReports.length === 0" class="text-gray-500 text-center pt-10">报告内容将在此处显示。</div>
+                      <div v-for="report in sourceReports" :key="report.id" class="border rounded-md">
+                          <div @click="toggleReportDetail(report)" class="p-3 flex justify-between items-center cursor-pointer hover:bg-gray-50">
+                              <h3 class="font-semibold">{{ report.title }}</h3>
+                              <svg class="w-5 h-5 transition-transform" :class="{'rotate-180': !report.isCollapsed}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
                           </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Right Column: Generated Form -->
-            <section class="bg-white/50 backdrop-blur-sm rounded-lg shadow-md flex flex-col overflow-hidden border border-white/20">
-                 <h2 class="text-lg font-semibold p-4 border-b border-white/20">{{ currentTemplate?.name || '生成的草稿' }}</h2>
-                 <div class="flex-grow overflow-y-auto p-4 space-y-4">
-                    <div v-if="currentTemplate" v-for="field in (currentTemplate.fields || [])" :key="field.id" class="space-y-2">
-                        <label :for="field.id" class="font-semibold text-gray-700">{{ field.label }}</label>
-                        
-                        <!-- Rich Text -->
-                        <TiptapEditor v-if="field.type === 'tiptap'" 
-                                      v-model="formValues[field.id]" 
-                                      :placeholder="field.placeholder" 
-                                      @showApiKeyConfig="(reason) => openApiKeyDialog(reason)" />
-                        
-                        <!-- Number -->
-                        <input v-else-if="field.type === 'number'" :id="field.id" type="number" v-model.number="formValues[field.id]" :placeholder="field.placeholder" class="form-input" />
-
-                        <!-- Dropdown -->
-                        <select v-else-if="field.type === 'dropdown'" :id="field.id" v-model="formValues[field.id]" class="form-input">
-                            <option disabled value="">请选择</option>
-                            <option v-for="opt in (field.options || [])" :key="opt.value" :value="opt.value">{{ opt.text }}</option>
-                        </select>
-
-                        <!-- Multi-Select Checkboxes -->
-                        <div v-else-if="field.type === 'multiSelect'" class="flex flex-wrap gap-x-4 gap-y-2 pt-1">
-                           <label v-for="opt in (field.options || [])" :key="opt.value" class="flex items-center space-x-2 cursor-pointer">
-                             <input type="checkbox" :value="opt.value" v-model="formValues[field.id]" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                             <span>{{ opt.text }}</span>
-                           </label>
-                        </div>
-                        
-                        <!-- Address -->
-                        <textarea v-else-if="field.type === 'address'" :id="field.id" v-model="formValues[field.id]" :placeholder="field.placeholder" rows="3" class="form-input"></textarea>
-
-                        <!-- DateTime -->
-                        <input v-else-if="field.type === 'datetime'" :id="field.id" type="datetime-local" v-model="formValues[field.id]" class="form-input" />
-                        
-                        <!-- Image Uploader -->
-                        <div v-else-if="field.type === 'image'">
-                           <div class="grid grid-cols-5 gap-4">
-                              <div v-for="file in (formValues[field.id] || [])" :key="file.id" class="relative w-24 h-24">
-                                <img :src="file.url" :alt="file.name" class="w-full h-full object-cover rounded-lg shadow-md">
-                                <button @click="removeFile(field.id, file.id)" class="absolute -top-1 -right-1 bg-gray-700 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs">&times;</button>
-                              </div>
-                              <div @click="triggerFileInput(field.id)" class="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:bg-gray-50/50">
-                                <span class="text-3xl text-gray-400">+</span>
-                              </div>
-                           </div>
-                           <p class="text-xs text-gray-500 mt-2">单张图片不超过 {{ formatFileSize(field.maxSize) }}，最多上传 {{ field.maxCount }} 张</p>
-                           <input type="file" multiple accept="image/*" class="hidden" :ref="(el) => fileInputRefs[field.id] = el" @change="handleFileSelect($event, field)">
-                        </div>
-
-                        <!-- Attachment Uploader -->
-                        <div v-else-if="field.type === 'attachment'">
-                           <button @click="triggerFileInput(field.id)" class="px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md hover:bg-gray-50/50">+ 添加附件</button>
-                           <p class="text-xs text-gray-500 mt-2">单个附件不超过 {{ formatFileSize(field.maxSize) }}，最多上传 {{ field.maxCount }} 个</p>
-                           <div class="mt-4 space-y-2">
-                              <div v-for="file in (formValues[field.id] || [])" :key="file.id" class="flex items-center justify-between p-2 bg-gray-100/80 rounded-md">
-                                 <div class="flex items-center space-x-2">
-                                    <svg class="h-6 w-6 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path></svg>
-                                    <div>
-                                      <p class="text-sm font-medium">{{ file.name }}</p>
-                                      <p class="text-xs text-gray-500">{{ formatFileSize(file.size) }}</p>
+                          <div v-if="!report.isCollapsed" class="p-4 border-t border-white/20 prose max-w-none text-sm">
+                            <div v-for="field in report.fields" :key="field.name" class="mb-3">
+                                <b class="text-gray-700">{{ field.name }}:</b>
+                                
+                                <div v-if="field.type === 'image'" class="mt-2 grid grid-cols-4 gap-2">
+                                    <div v-for="file in (field.value || [])" :key="file.name" class="relative">
+                                      <img :src="file.url" alt="图片预览" class="w-full h-auto rounded-md shadow-md border border-gray-200" />
                                     </div>
-                                 </div>
-                                 <button @click="removeFile(field.id, file.id)" class="p-1 text-gray-500 hover:text-red-600">
-                                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
-                                 </button>
-                              </div>
-                           </div>
-                           <input type="file" multiple class="hidden" :ref="(el) => fileInputRefs[field.id] = el" @change="handleFileSelect($event, field)">
-                        </div>
+                                </div>
+                                <div v-else-if="field.type === 'attachment'" class="mt-1 space-y-2">
+                                    <div v-for="file in (field.value || [])" :key="file.name">
+                                        <a :href="file.url" target="_blank" class="text-indigo-600 hover:underline">{{ file.name }} ({{ formatFileSize(file.size) }})</a>
+                                    </div>
+                                </div>
+                                <div v-else-if="field.type === 'multiSelect'" class="inline-flex flex-wrap gap-2 mt-1">
+                                  <span v-for="item in (field.value || [])" :key="item" class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-xs">{{ item }}</span>
+                                </div>
+                                <div v-else-if="field.type === 'tiptap'" class="mt-1">
+                                  <TiptapViewer :content="field.value" />
+                                </div>
+                                <span v-else class="ml-2 text-gray-800">{{ field.value }}</span>
+                            </div>
+                          </div>
+                      </div>
+                  </div>
+              </section>
 
-                        <!-- Plain Text -->
-                        <input v-else :id="field.id" type="text" v-model="formValues[field.id]" :placeholder="field.placeholder" class="form-input" />
-                    </div>
-                 </div>
-            </section>
-        </div>
-      </main>
+              <!-- Right Column: Generated Form -->
+              <section class="bg-white/50 backdrop-blur-sm rounded-lg shadow-md flex flex-col overflow-hidden border border-white/20">
+                   <h2 class="text-lg font-semibold p-4 border-b border-white/20">{{ currentTemplate?.name || '生成的草稿' }}</h2>
+                   <div class="flex-grow overflow-y-auto p-4 space-y-4">
+                      <div v-if="currentTemplate" v-for="field in (currentTemplate.fields || [])" :key="field.id" class="space-y-2">
+                          <label :for="field.id" class="font-semibold text-gray-700">{{ field.label }}</label>
+                          
+                          <!-- Rich Text -->
+                          <TiptapEditor v-if="field.type === 'tiptap'" 
+                                        v-model="formValues[field.id]" 
+                                        :placeholder="field.placeholder" 
+                                        @showApiKeyConfig="handleShowApiKeyConfig" />
+                          
+                          <!-- Number -->
+                          <input v-else-if="field.type === 'number'" :id="field.id" type="number" v-model.number="formValues[field.id]" :placeholder="field.placeholder" class="form-input" />
+
+                          <!-- Dropdown -->
+                          <select v-else-if="field.type === 'dropdown'" :id="field.id" v-model="formValues[field.id]" class="form-input">
+                              <option disabled value="">请选择</option>
+                              <option v-for="opt in (field.options || [])" :key="opt.value" :value="opt.value">{{ opt.text }}</option>
+                          </select>
+
+                          <!-- Multi-Select Checkboxes -->
+                          <div v-else-if="field.type === 'multiSelect'" class="flex flex-wrap gap-x-4 gap-y-2 pt-1">
+                             <label v-for="opt in (field.options || [])" :key="opt.value" class="flex items-center space-x-2 cursor-pointer">
+                               <input type="checkbox" :value="opt.value" v-model="formValues[field.id]" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                               <span>{{ opt.text }}</span>
+                             </label>
+                          </div>
+                          
+                          <!-- Address -->
+                          <textarea v-else-if="field.type === 'address'" :id="field.id" v-model="formValues[field.id]" :placeholder="field.placeholder" rows="3" class="form-input"></textarea>
+
+                          <!-- DateTime -->
+                          <input v-else-if="field.type === 'datetime'" :id="field.id" type="datetime-local" v-model="formValues[field.id]" class="form-input" />
+                          
+                          <!-- Image Uploader -->
+                          <div v-else-if="field.type === 'image'">
+                             <div class="grid grid-cols-5 gap-4">
+                                <div v-for="file in (formValues[field.id] || [])" :key="file.id" class="relative w-24 h-24">
+                                  <img :src="file.url" :alt="file.name" class="w-full h-full object-cover rounded-lg shadow-md">
+                                  <button @click="removeFile(field.id, file.id)" class="absolute -top-1 -right-1 bg-gray-700 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs">&times;</button>
+                                </div>
+                                <div @click="triggerFileInput(field.id)" class="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:bg-gray-50/50">
+                                  <span class="text-3xl text-gray-400">+</span>
+                                </div>
+                             </div>
+                             <p class="text-xs text-gray-500 mt-2">单张图片不超过 {{ formatFileSize(field.maxSize) }}，最多上传 {{ field.maxCount }} 张</p>
+                             <input type="file" multiple accept="image/*" class="hidden" :ref="(el) => fileInputRefs[field.id] = el" @change="handleFileSelect($event, field)">
+                          </div>
+
+                          <!-- Attachment Uploader -->
+                          <div v-else-if="field.type === 'attachment'">
+                             <button @click="triggerFileInput(field.id)" class="px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md hover:bg-gray-50/50">+ 添加附件</button>
+                             <p class="text-xs text-gray-500 mt-2">单个附件不超过 {{ formatFileSize(field.maxSize) }}，最多上传 {{ field.maxCount }} 个</p>
+                             <div class="mt-4 space-y-2">
+                                <div v-for="file in (formValues[field.id] || [])" :key="file.id" class="flex items-center justify-between p-2 bg-gray-100/80 rounded-md">
+                                   <div class="flex items-center space-x-2">
+                                      <svg class="h-6 w-6 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path></svg>
+                                      <div>
+                                        <p class="text-sm font-medium">{{ file.name }}</p>
+                                        <p class="text-xs text-gray-500">{{ formatFileSize(file.size) }}</p>
+                                      </div>
+                                   </div>
+                                   <button @click="removeFile(field.id, file.id)" class="p-1 text-gray-500 hover:text-red-600">
+                                      <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                                   </button>
+                                </div>
+                             </div>
+                             <input type="file" multiple class="hidden" :ref="(el) => fileInputRefs[field.id] = el" @change="handleFileSelect($event, field)">
+                          </div>
+
+                          <!-- Plain Text -->
+                          <input v-else :id="field.id" type="text" v-model="formValues[field.id]" :placeholder="field.placeholder" class="form-input" />
+                      </div>
+                   </div>
+              </section>
+          </div>
+        </main>
+      </template>
+
     </div>
   </div>
   <!-- 主应用界面结束 -->
-
-  <!-- API Key Configuration Dialog -->
-  <div v-if="showApiKeyDialog" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg p-6 w-96 mx-4">
-      <h3 class="text-lg font-bold mb-4">配置 DeepSeek API Key</h3>
-      <div class="mb-4">
-        <div v-if="apiKeyDialogReason === 'ai_generate'" class="bg-blue-50 border border-blue-200 rounded-md p-3 mb-3">
-          <p class="text-sm text-blue-800">
-            🤖 您正在使用AI智能生成草稿功能，需要配置 DeepSeek API Key 才能继续。无论是否有源报告数据，AI都会为您生成专业的内容。
-          </p>
-        </div>
-        <div v-else-if="apiKeyDialogReason === 'ai_text_optimize'" class="bg-green-50 border border-green-200 rounded-md p-3 mb-3">
-          <p class="text-sm text-green-800">
-            ✨ 您正在使用AI文本优化功能，需要配置 DeepSeek API Key 才能继续。
-          </p>
-        </div>
-        <p class="text-sm text-gray-600 mb-3">
-          请输入你的 DeepSeek API Key，用于启用AI功能。
-        </p>
-        <p class="text-sm text-gray-600 mb-3">
-          如果你还没有 API Key，请前往 
-          <a href="https://platform.deepseek.com/" target="_blank" class="text-blue-500 hover:underline">DeepSeek 控制台</a> 
-          获取。
-        </p>
-        <input 
-          v-model="tempApiKey" 
-          type="password" 
-          placeholder="请输入 DeepSeek API Key"
-          class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          @keyup.enter="saveApiKey"
-        />
-      </div>
-      <div class="flex justify-end space-x-3">
-        <button @click="cancelApiKeyDialog" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors">
-          取消
-        </button>
-        <button @click="saveApiKey" 
-                class="px-4 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors" 
-                :disabled="!tempApiKey.trim()">
-          保存
-        </button>
-      </div>
-    </div>
-  </div>
 </template>
 
 <style>

@@ -36,7 +36,7 @@
       <button @click="editor.chain().focus().toggleBulletList().run()" :class="{ 'is-active': editor.isActive('bulletList') }" class="toolbar-button">列表</button>
       <button @click="addImage" class="toolbar-button">图片</button>
       <div class="divider"></div>
-      <div class="relative">
+      <div class="relative" ref="aiDropdownContainer">
         <button @click="toggleAiDropdown" :disabled="editor.state.selection.empty || isAiProcessing" class="toolbar-button flex items-center">
           <span v-if="isAiProcessing" class="animate-spin mr-1">⏳</span>
           AI 优化
@@ -88,7 +88,7 @@ import Superscript from '@tiptap/extension-superscript';
 import TextAlign from '@tiptap/extension-text-align';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
-import { watch, ref } from 'vue';
+import { watch, ref, onUnmounted } from 'vue';
 import { aiService, AI_PROMPTS } from '../utils/aiService.js';
 
 const props = defineProps({
@@ -98,8 +98,11 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'showApiKeyConfig']);
 
+let lastEmittedValue = props.modelValue;
+
 const isAiDropdownOpen = ref(false);
 const isAiProcessing = ref(false);
+const aiDropdownContainer = ref(null); // Ref for the dropdown container
 
 const aiOptions = Object.keys(AI_PROMPTS);
 
@@ -122,129 +125,92 @@ const editor = useEditor({
     attributes: { class: 'prose max-w-none p-4 focus:outline-none min-h-[150px]' },
   },
   onUpdate: () => {
-    emit('update:modelValue', editor.value.getHTML());
+    const html = editor.value.getHTML();
+    lastEmittedValue = html;
+    emit('update:modelValue', html);
   },
 });
+
+// --- AI Dropdown Logic ---
 
 const toggleAiDropdown = () => {
     if (editor.value.state.selection.empty || isAiProcessing.value) return;
     isAiDropdownOpen.value = !isAiDropdownOpen.value;
 };
 
+const closeAiDropdownOnClickOutside = (event) => {
+  if (aiDropdownContainer.value && !aiDropdownContainer.value.contains(event.target)) {
+    isAiDropdownOpen.value = false;
+  }
+};
 
+watch(isAiDropdownOpen, (isOpen) => {
+  if (isOpen) {
+    document.addEventListener('click', closeAiDropdownOnClickOutside, true);
+  } else {
+    document.removeEventListener('click', closeAiDropdownOnClickOutside, true);
+  }
+});
+
+onUnmounted(() => {
+  // Cleanup listener on component destroy
+  document.removeEventListener('click', closeAiDropdownOnClickOutside, true);
+});
 
 const applyAiAction = async (action) => {
   if (isAiProcessing.value) return;
-  
-  isAiDropdownOpen.value = false;
+
   isAiProcessing.value = true;
+  isAiDropdownOpen.value = false;
 
-  // 保存原始选择范围和选中的文本
-  const originalSelection = {
-    from: editor.value.state.selection.from,
-    to: editor.value.state.selection.to
-  };
+  const { from, to } = editor.value.state.selection;
+  const selectedText = editor.value.state.doc.textBetween(from, to, ' ');
+
+  if (!selectedText.trim()) {
+    alert('请先选择要优化的文本');
+    isAiProcessing.value = false;
+    return;
+  }
+  const promptConfig = AI_PROMPTS[action];
+  if (!promptConfig) {
+    alert('未找到对应的处理方式');
+    isAiProcessing.value = false;
+    return;
+  }
+  if (!aiService.hasApiKey()) {
+    emit('showApiKeyConfig');
+    isAiProcessing.value = false;
+    return;
+  }
+
+  // 1. Atomically delete the selection and focus the editor.
+  editor.value.chain().focus().deleteRange({ from, to }).run();
   
-  const selectedText = editor.value.state.doc.textBetween(originalSelection.from, originalSelection.to, ' ');
-
+  let accumulatedText = '';
   try {
-    if (!selectedText.trim()) {
-      alert('请先选择要优化的文本');
-      return;
-    }
-
-    const promptConfig = AI_PROMPTS[action];
-    if (!promptConfig) {
-      alert('未找到对应的处理方式');
-      return;
-    }
-
-    // 检查 API Key
-    if (!aiService.hasApiKey()) {
-      emit('showApiKeyConfig', 'ai_text_optimize');
-      return;
-    }
-
-    let hasStartedReplacing = false;
-    let currentPosition = originalSelection.from;
-    
-    // 流式处理，实时更新编辑器内容
-    const result = await aiService.streamProcess(
+    // 2. Stream content and insert it at the current cursor position,
+    // mimicking a user typing.
+    await aiService.streamProcess(
       promptConfig.prompt,
       selectedText,
-      // 流式回调，实时插入内容
-      (chunk, accumulatedText) => {
-        if (chunk && chunk.trim()) {
-          // 如果这是第一次接收到内容，先删除选中的文本
-          if (!hasStartedReplacing) {
-            editor.value.chain()
-              .focus()
-              .setTextSelection({ from: originalSelection.from, to: originalSelection.to })
-              .deleteSelection()
-              .run();
-            hasStartedReplacing = true;
-            currentPosition = originalSelection.from;
-          }
-          
-          // 在当前位置插入新的chunk
-          editor.value.chain()
-            .focus()
-            .setTextSelection({ from: currentPosition, to: currentPosition })
-            .insertContent(chunk)
-            .run();
-          
-          // 更新当前位置
-          currentPosition += chunk.length;
+      (chunk) => {
+        if (chunk) {
+          accumulatedText += chunk;
+          editor.value.commands.insertContent(chunk);
         }
-      }
+      },
+      { stream: true }
     );
-
-    // 流式完成后的最终处理
-    if (!result || !result.trim()) {
-      if (hasStartedReplacing) {
-        // 如果已经开始替换但失败了，恢复原始文本
-        editor.value.chain()
-          .focus()
-          .setTextSelection({ from: originalSelection.from, to: currentPosition })
-          .insertContent(selectedText)
-          .run();
-        alert('AI 处理失败，已恢复原文本');
-      } else {
-        // 如果还没有开始替换就失败了，原文本仍然存在，只需提示
-        alert('AI 处理失败，原文本保持不变');
-      }
-    }
-
+    // On success, the cursor is already at the correct final position.
   } catch (error) {
-    console.error('AI 处理错误:', error);
-    
-    // 发生错误时的处理
-    try {
-      if (hasStartedReplacing) {
-        // 如果已经开始替换但出错了，尝试恢复原始文本
-        editor.value.chain()
-          .focus()
-          .setTextSelection({ from: originalSelection.from, to: currentPosition })
-          .insertContent(selectedText)
-          .run();
-        alert(`AI 处理失败，已恢复原文本: ${error.message}`);
-      } else {
-        // 如果还没开始替换就出错了，只需要确保选择状态正确
-        const currentDoc = editor.value.state.doc;
-        const docSize = currentDoc.content.size;
-        
-        if (originalSelection.from < docSize && originalSelection.to <= docSize) {
-          editor.value.chain()
-            .focus()
-            .setTextSelection({ from: originalSelection.from, to: originalSelection.to })
-            .run();
-        }
-        alert(`AI 处理失败: ${error.message}`);
-      }
-    } catch (e) {
-      console.error('错误处理时出错:', e);
-      alert(`AI 处理失败: ${error.message}`);
-    }
+    console.error('AI stream processing failed:', error);
+    alert(`AI 处理失败: ${error.message}`);
+
+    // 3. On error, restore the original text by replacing the partial content.
+    editor.value.chain().focus()
+      .insertContentAt({ from, to: from + accumulatedText.length }, selectedText)
+      .setTextSelection(from + selectedText.length)
+      .run();
   } finally {
     isAiProcessing.value = false;
   }
@@ -269,8 +235,15 @@ const addImage = () => {
 };
 
 watch(() => props.modelValue, (newValue) => {
+    // If the new value is the same as the one we just emitted, it's an update
+    // from our own editor, and we should ignore it to prevent a feedback loop.
+    if (newValue === lastEmittedValue) {
+      return;
+    }
+
     const isSame = editor.value.getHTML() === newValue;
     if (isSame) return;
+    
     editor.value.commands.setContent(newValue, false);
 });
 </script>

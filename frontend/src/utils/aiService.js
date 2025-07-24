@@ -1,36 +1,91 @@
 import { authService } from './authService.js';
 
+// --- 模型配置 ---
+export const MODELS_CONFIG = {
+  deepseek: {
+    label: 'DeepSeek',
+    baseURL: 'https://api.deepseek.com',
+    models: [
+      { id: 'deepseek-chat', name: 'DeepSeek Chat (推荐)' },
+      { id: 'deepseek-reasoner', name: 'DeepSeek Reasoner' },
+    ],
+    // 将标准输入转换为提供商特定的API格式
+    transformPayload: (payload) => ({
+      model: payload.model,
+      messages: payload.messages,
+      stream: payload.stream,
+      temperature: payload.temperature,
+      max_tokens: payload.max_tokens,
+    }),
+    // 从提供商的响应中提取内容
+    extractContent: (data) => data.choices?.[0]?.delta?.content,
+  },
+  doubao: {
+    label: '火山方舟 (豆包)',
+    baseURL: 'https://ark.cn-beijing.volces.com/api/v3',
+    models: [
+      { id: 'kimi-k2-250711', name: 'Kimi-K2' },
+      { id: 'doubao-1-5-pro-32k-250115', name: 'Doubao Pro 32k' },
+      { id: 'doubao-1-5-lite-32k-250115', name: 'Doubao Lite 32k' },
+    ],
+    transformPayload: (payload) => ({
+      model: payload.model,
+      messages: payload.messages,
+      stream: payload.stream,
+      temperature: payload.temperature,
+    }),
+    extractContent: (data) => data.choices?.[0]?.delta?.content,
+  },
+};
+
 // AI 服务工具类
 export class AIService {
   constructor() {
-    this.apiKey = localStorage.getItem('deepseek_api_key') || '';
-    this.baseURL = 'https://api.deepseek.com';
+    this.settings = this.getSettings();
   }
 
-  // 设置 API Key
-  setApiKey(key) {
-    this.apiKey = key;
-    localStorage.setItem('deepseek_api_key', key);
+  // 获取所有AI设置
+  getSettings() {
+    try {
+      const settingsStr = localStorage.getItem('ai_settings');
+      if (settingsStr) {
+        return JSON.parse(settingsStr);
+      }
+    } catch (e) {
+      console.error('Failed to parse AI settings from localStorage', e);
+    }
+    // Return default settings if nothing is stored or parsing fails
+    return {
+      provider: 'deepseek',
+      apiKey: '',
+      model: MODELS_CONFIG.deepseek.models[0].id,
+    };
   }
 
-  // 获取 API Key
-  getApiKey() {
-    return this.apiKey;
+  // 保存所有AI设置
+  saveSettings(settings) {
+    this.settings = settings;
+    localStorage.setItem('ai_settings', JSON.stringify(settings));
   }
 
   // 检查 API Key 是否已设置
   hasApiKey() {
-    return !!this.apiKey;
+    return !!this.settings.apiKey;
   }
 
-  // 调用 DeepSeek API
+  // 调用 AI API
   async callAPI(prompt, text, options = {}) {
     if (!this.hasApiKey()) {
-      throw new Error('请先配置 DeepSeek API Key');
+      throw new Error('请先在设置中配置AI模型的API Key');
     }
 
-    const payload = {
-      model: options.model || 'deepseek-chat',
+    const providerConfig = MODELS_CONFIG[this.settings.provider];
+    if (!providerConfig) {
+      throw new Error(`未知的AI提供商: ${this.settings.provider}`);
+    }
+
+    const standardPayload = {
+      model: this.settings.model,
       messages: [
         {
           role: 'system',
@@ -43,16 +98,18 @@ export class AIService {
       ],
       stream: options.stream !== false,
       temperature: options.temperature || 0.7,
-      max_tokens: options.maxTokens || 2000
+      max_tokens: options.maxTokens || 2000,
     };
 
-    const response = await fetch(`${this.baseURL}/chat/completions`, {
+    const apiPayload = providerConfig.transformPayload(standardPayload);
+
+    const response = await fetch(`${providerConfig.baseURL}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`
+        'Authorization': `Bearer ${this.settings.apiKey}`
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(apiPayload)
     });
 
     if (!response.ok) {
@@ -65,13 +122,12 @@ export class AIService {
 
   // 流式处理文本
   async streamProcess(prompt, text, onChunk, options = {}) {
-    // 根据options.stream决定是否使用流式，默认为true
     const useStream = options.stream !== false;
-    
     const response = await this.callAPI(prompt, text, { ...options, stream: useStream });
+    
+    const providerConfig = MODELS_CONFIG[this.settings.provider];
 
     if (!useStream) {
-      // 非流式处理：直接返回完整结果
       const result = await response.json();
       const content = result.choices?.[0]?.message?.content || '';
       return content;
@@ -80,7 +136,6 @@ export class AIService {
     // 流式处理
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
-
     let accumulatedText = '';
 
     try {
@@ -95,7 +150,7 @@ export class AIService {
           if (line.startsWith('data: ') && line !== 'data: [DONE]') {
             try {
               const data = JSON.parse(line.slice(6));
-              const content = data.choices?.[0]?.delta?.content;
+              const content = providerConfig.extractContent(data);
               
               if (content) {
                 accumulatedText += content;
@@ -308,7 +363,7 @@ export class FeishuApiService {
        if (params.start_time) queryParams.append('start_time', params.start_time);
        if (params.end_time) queryParams.append('end_time', params.end_time);
        
-       const url = `${this.baseURL}/reports${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+       const url = `${this.baseURL}/feishu/reports${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
        const response = await authService.authenticatedFetch(url);
        
        if (!response.ok) {
