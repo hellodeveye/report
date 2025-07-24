@@ -1,8 +1,8 @@
 // 认证服务
 class AuthService {
   constructor() {
-    this.tokenKey = 'feishu_auth_token';
-    this.userKey = 'feishu_user_info';
+    this.tokenKey = 'report_app_auth_token';
+    this.userKey = 'report_app_user_info';
     // 使用相对路径，让Vite代理处理
     this.baseURL = '/api';
   }
