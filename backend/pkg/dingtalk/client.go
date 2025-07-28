@@ -9,27 +9,26 @@ import (
 	"time"
 
 	"github.com/hellodeveye/report/internal/models"
+	"resty.dev/v3"
 )
 
 // Client 钉钉API客户端
 type Client struct {
 	config     *models.DingTalkConfig
-	httpClient *http.Client
+	httpClient *resty.Client
 }
 
 // NewClient 创建新的钉钉客户端
 func NewClient(config *models.DingTalkConfig) *Client {
 	return &Client{
-		config: config,
-		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
-		},
+		config:     config,
+		httpClient: resty.New().SetTimeout(30 * time.Second).EnableDebug(),
 	}
 }
 
 func (c *Client) GetAccessToken() (*models.DingTalkAccessTokenResponse, error) {
 	url := "https://oapi.dingtalk.com/gettoken?appkey=" + c.config.AppKey + "&appsecret=" + c.config.AppSecret
-	resp, err := c.httpClient.Get(url)
+	resp, err := c.httpClient.R().Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %v", err)
 	}
@@ -71,7 +70,7 @@ func (c *Client) GetUserAccessToken(code string) (*models.DingTalkOAuthTokenResp
 
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.httpClient.R().SetBody(jsonData).Post(url)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %v", err)
 	}
@@ -82,8 +81,8 @@ func (c *Client) GetUserAccessToken(code string) (*models.DingTalkOAuthTokenResp
 		return nil, fmt.Errorf("read response body failed: %v", err)
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
+	if resp.StatusCode() != http.StatusOK {
+		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode(), string(body))
 	}
 
 	var tokenResp models.DingTalkOAuthTokenResponse
@@ -98,15 +97,7 @@ func (c *Client) GetUserAccessToken(code string) (*models.DingTalkOAuthTokenResp
 func (c *Client) GetUserInfo(accessToken string) (*models.DingTalkUserInfoResponse, error) {
 	url := "https://api.dingtalk.com/v1.0/contact/users/me"
 
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("create request failed: %v", err)
-	}
-
-	req.Header.Set("x-acs-dingtalk-access-token", accessToken)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.httpClient.R().SetHeader("x-acs-dingtalk-access-token", accessToken).Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %v", err)
 	}
@@ -117,8 +108,8 @@ func (c *Client) GetUserInfo(accessToken string) (*models.DingTalkUserInfoRespon
 		return nil, fmt.Errorf("read response body failed: %v", err)
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
+	if resp.StatusCode() != http.StatusOK {
+		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode(), string(body))
 	}
 
 	var userResp models.DingTalkUserInfoResponse
@@ -148,7 +139,7 @@ func (c *Client) GetUserByUnionId(accessToken string, unionId string) (*models.D
 
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.httpClient.R().SetBody(jsonData).Post(url)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %v", err)
 	}
@@ -159,8 +150,8 @@ func (c *Client) GetUserByUnionId(accessToken string, unionId string) (*models.D
 		return nil, fmt.Errorf("read response body failed: %v", err)
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
+	if resp.StatusCode() != http.StatusOK {
+		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode(), string(body))
 	}
 
 	var userResp models.DingTalkUserByUnionIdResponse

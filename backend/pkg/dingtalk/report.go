@@ -1,7 +1,6 @@
 package dingtalk
 
 import (
-	"bytes"
 	"encoding/json"
 	"io"
 	"log"
@@ -51,7 +50,7 @@ func (s *ReportService) GetTemplates(userId string) (*TemplateListResponse, erro
 		return nil, err
 	}
 
-	resp, err := s.client.httpClient.Post("https://oapi.dingtalk.com/topapi/report/template/listbyuserid?access_token="+accessToken.AccessToken, "application/json", bytes.NewBuffer(jsonData))
+	resp, err := s.client.httpClient.R().SetBody(jsonData).Post("https://oapi.dingtalk.com/topapi/report/template/listbyuserid?access_token=" + accessToken.AccessToken)
 	if err != nil {
 		log.Println("request failed:", err)
 		return nil, err
@@ -128,7 +127,7 @@ func (s *ReportService) GetReports(userID string, templateName string, startTime
 		return nil, err
 	}
 
-	resp, err := s.client.httpClient.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	resp, err := s.client.httpClient.R().SetBody(jsonData).Post(url)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +166,7 @@ func (s *ReportService) GetTemplateDetail(userId, template_name string) (*Templa
 		return nil, err
 	}
 
-	resp, err := s.client.httpClient.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	resp, err := s.client.httpClient.R().SetBody(jsonData).Post(url)
 	if err != nil {
 		return nil, err
 	}
@@ -273,7 +272,7 @@ func (s *ReportService) SaveDraft(userId string, draftRequest *CreateReportReque
 		return nil, err
 	}
 
-	resp, err := s.client.httpClient.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	resp, err := s.client.httpClient.R().SetBody(jsonData).Post(url)
 	if err != nil {
 		return nil, err
 	}
@@ -286,6 +285,49 @@ func (s *ReportService) SaveDraft(userId string, draftRequest *CreateReportReque
 	}
 
 	var response CreateReportResponse
+	if err := json.Unmarshal(body, &response); err != nil {
+		return nil, err
+	}
+
+	return &response, nil
+}
+
+type SaveReportParam struct {
+	Contents   []ContentItem `json:"contents"`
+	DDFrom     string        `json:"dd_from"`
+	TemplateID string        `json:"template_id"`
+	UserID     string        `json:"userid"`
+}
+
+type SaveReportResponse struct {
+	ErrCode   int    `json:"errcode"`
+	Result    string `json:"result"`
+	RequestID string `json:"request_id"`
+}
+
+func (s *ReportService) SaveContent(userId string, param SaveReportParam) (*SaveReportResponse, error) {
+	accessToken, err := s.client.GetAccessToken()
+	if err != nil {
+		return nil, err
+	}
+
+	url := "https://oapi.dingtalk.com/topapi/report/savecontent?access_token=" + accessToken.AccessToken
+
+	jsonData, err := json.Marshal(param)
+
+	resp, err := s.client.httpClient.R().SetBody(jsonData).Post(url)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var response SaveReportResponse
 	if err := json.Unmarshal(body, &response); err != nil {
 		return nil, err
 	}
