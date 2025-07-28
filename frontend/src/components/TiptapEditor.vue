@@ -37,12 +37,12 @@
       <button @click="addImage" class="toolbar-button">图片</button>
       <div class="divider"></div>
       <div class="relative" ref="aiDropdownContainer">
-        <button @click="toggleAiDropdown" :disabled="editor.state.selection.empty || isAiProcessing" class="toolbar-button flex items-center">
+        <button @click="handleAiButtonClick" :disabled="editor.state.selection.empty || isAiProcessing" class="toolbar-button flex items-center">
           <span v-if="isAiProcessing" class="animate-spin mr-1">⏳</span>
           AI 优化
-          <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          <svg v-if="aiService.hasApiKey()" class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
         </button>
-        <div v-if="isAiDropdownOpen" class="absolute z-10 mt-1 bg-white rounded-md border border-gray-200 w-64 max-h-60 overflow-y-auto">
+        <div v-if="isAiDropdownOpen && aiService.hasApiKey()" class="absolute z-10 mt-1 bg-white rounded-md border border-gray-200 w-64 max-h-60 overflow-y-auto">
           <ul class="py-1">
             <li v-for="option in aiOptions" :key="option">
               <a href="#" @click.prevent="applyAiAction(option)" 
@@ -96,13 +96,13 @@ const props = defineProps({
   placeholder: { type: String, default: '请输入...' },
 });
 
-const emit = defineEmits(['update:modelValue', 'showApiKeyConfig']);
+const emit = defineEmits(['update:modelValue', 'showApiKeyConfig', 'openSettings']);
 
 let lastEmittedValue = props.modelValue;
 
 const isAiDropdownOpen = ref(false);
 const isAiProcessing = ref(false);
-const aiDropdownContainer = ref(null); // Ref for the dropdown container
+const aiDropdownContainer = ref(null);
 
 const aiOptions = Object.keys(AI_PROMPTS);
 
@@ -131,11 +131,18 @@ const editor = useEditor({
   },
 });
 
-// --- AI Dropdown Logic ---
+// --- AI Logic ---
 
-const toggleAiDropdown = () => {
-    if (editor.value.state.selection.empty || isAiProcessing.value) return;
+const handleAiButtonClick = () => {
+  if (editor.value.state.selection.empty || isAiProcessing.value) return;
+  
+  if (aiService.hasApiKey()) {
+    // If API key is configured, show the dropdown
     isAiDropdownOpen.value = !isAiDropdownOpen.value;
+  } else {
+    // If no API key, open settings
+    emit('openSettings');
+  }
 };
 
 const closeAiDropdownOnClickOutside = (event) => {
@@ -153,7 +160,6 @@ watch(isAiDropdownOpen, (isOpen) => {
 });
 
 onUnmounted(() => {
-  // Cleanup listener on component destroy
   document.removeEventListener('click', closeAiDropdownOnClickOutside, true);
 });
 
@@ -178,7 +184,7 @@ const applyAiAction = async (action) => {
     return;
   }
   if (!aiService.hasApiKey()) {
-    emit('showApiKeyConfig');
+    emit('openSettings');
     isAiProcessing.value = false;
     return;
   }

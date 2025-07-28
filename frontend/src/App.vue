@@ -17,15 +17,40 @@ const showAuthCallback = ref(false);
 const showSettingsPage = ref(false);
 const isLoading = ref(false);
 const loadingText = ref('正在加载...');
+const initialSettingsTab = ref('account');
 
 const templates = ref([]);
 const selectedSourceTemplateId = ref('');
 const selectedTemplateId = ref('');
 const formValues = ref({});
-const dateValue = ref({
-  startDate: '',
-  endDate: '',
-});
+
+const getThisWeekRange = () => {
+    const today = new Date();
+    const dayOfWeek = today.getDay() || 7; // Sunday is 7, Monday is 1
+    const thisWeekStart = new Date(today);
+    thisWeekStart.setDate(today.getDate() - dayOfWeek + 1);
+    
+    const formatDate = (date) => {
+        const d = new Date(date);
+        let month = '' + (d.getMonth() + 1);
+        let day = '' + d.getDate();
+        const year = d.getFullYear();
+
+        if (month.length < 2) 
+            month = '0' + month;
+        if (day.length < 2) 
+            day = '0' + day;
+
+        return [year, month, day].join('-');
+    }
+
+    return {
+        startDate: formatDate(thisWeekStart),
+        endDate: formatDate(today)
+    };
+};
+
+const dateValue = ref(getThisWeekRange());
 
 const isProfileMenuOpen = ref(false);
 const profileMenuNode = ref(null);
@@ -350,6 +375,53 @@ const formatFileSize = (bytes) => {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
+
+const sendReport = async () => {
+  if (!currentTemplate.value) {
+    addNotification('请选择一个模板', '', 'error');
+    return;
+  }
+
+  // A simple validation to check that all fields are filled.
+  for (const field of currentTemplate.value.fields) {
+    const value = formValues.value[field.id];
+    if (value === undefined || value === null || (Array.isArray(value) && value.length === 0) || String(value).trim() === '') {
+        addNotification('请填写所有必填字段', `字段 "${field.label}" 不能为空。`, 'error');
+        return;
+    }
+  }
+
+  loadingText.value = '正在发送报告...';
+  isLoading.value = true;
+  try {
+    const reportData = {
+      template_id: currentTemplate.value.id,
+      template_name: currentTemplate.value.name,
+      contents: [],
+    };
+
+    for (const field of currentTemplate.value.fields) {
+      reportData.contents.push({
+        key: field.label, // Use label as key, which maps to field_name
+        value: formValues.value[field.id],
+      });
+    }
+
+    await apiService.sendDingTalkReport(reportData);
+    addNotification('报告发送成功', '你的报告已成功提交', 'success');
+    initializeFormValues(); // Optionally clear the form
+  } catch (error) {
+    console.error('发送报告失败:', error);
+    addNotification('发送报告失败', error.message || 'An unknown error occurred', 'error');
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const openSettings = () => {
+  initialSettingsTab.value = 'model';
+  showSettingsPage.value = true;
+};
 </script>
 
 <template>
@@ -388,7 +460,7 @@ const formatFileSize = (bytes) => {
   <div v-else class="min-h-screen w-full flex items-center justify-center p-4 bg-gray-900/10">
     <div class="w-full max-w-screen-2xl h-[90vh] bg-white/60 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-white/30 relative">
       
-      <SettingsPage v-if="showSettingsPage" :current-user="currentUser" @close="showSettingsPage = false" @notify="(n) => addNotification(n.title, n.description, n.type)" />
+      <SettingsPage v-if="showSettingsPage" :current-user="currentUser" :initial-tab="initialSettingsTab" @close="showSettingsPage = false" @notify="(n) => addNotification(n.title, n.description, n.type)" />
       
       <template v-else>
         <div v-if="isLoading" class="absolute inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-50 rounded-2xl">
@@ -452,7 +524,7 @@ const formatFileSize = (bytes) => {
           <section class="flex-shrink-0 border-b border-white/30 p-4">
               <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                   <div>
-                      <label for="source_template" class="text-sm font-medium text-gray-700">源模板:</label>
+                      <label for="source_template" class="text-sm font-medium text-gray-700">日志模板:</label>
                       <select id="source_template" v-model="selectedSourceTemplateId" class="mt-1 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white/80">
                           <option v-for="template in templates" :key="template.id" :value="template.id">{{ template.name }}</option>
                       </select>
@@ -462,7 +534,7 @@ const formatFileSize = (bytes) => {
                     <VueTailwindDatepicker id="date" v-model="dateValue" i18n="zh-cn" placeholder="选择日期范围" :shortcuts="datePickerShortcuts" :options="datePickerOptions" use-range :formatter="{ date: 'YYYY-MM-DD', month: 'MMM' }" class="mt-1 w-full" />
                   </div>
                   <div>
-                      <label for="template" class="text-sm font-medium text-gray-700">目标模板</label>
+                      <label for="template" class="text-sm font-medium text-gray-700">生成模板</label>
                       <select id="template" v-model="selectedTemplateId" class="mt-1 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white/80">
                           <option v-for="template in templates" :key="template.id" :value="template.id">{{ template.name }}</option>
                       </select>
@@ -470,6 +542,7 @@ const formatFileSize = (bytes) => {
                   <div class="md:col-span-2 flex space-x-2 items-end">
                     <button @click="getReports" class="w-full px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-white/30 text-gray-800 backdrop-blur-sm border border-white/40 shadow-lg hover:bg-white/50 hover:text-gray-900 focus:outline-none">获取报告</button>
                     <button @click="generateDraft" class="w-full px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-indigo-500/20 text-indigo-800 backdrop-blur-sm border border-indigo-500/30 shadow-lg hover:bg-indigo-500/40 hover:text-indigo-900 focus:outline-none">生成草稿</button>
+                    <button v-if="currentUser?.provider === 'dingtalk'" @click="sendReport" class="w-full px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-blue-500/20 text-blue-800 backdrop-blur-sm border border-blue-500/30 shadow-lg hover:bg-blue-500/40 hover:text-blue-900 focus:outline-none">发送报告</button>
                   </div>
               </div>
           </section>
@@ -498,7 +571,7 @@ const formatFileSize = (bytes) => {
                           <label :for="field.id" class="font-semibold text-gray-700">{{ field.label }}</label>
                            
                            <!-- Rich Text -->
-                           <TiptapEditor v-if="field.type === 'tiptap'" v-model="formValues[field.id]" :placeholder="field.placeholder" @showApiKeyConfig="showSettingsPage = true" />
+                           <TiptapEditor v-if="field.type === 'tiptap'" v-model="formValues[field.id]" :placeholder="field.placeholder" @openSettings="openSettings" />
                            
                            <!-- Number -->
                            <input v-else-if="field.type === 'number'" :id="field.id" type="number" v-model.number="formValues[field.id]" :placeholder="field.placeholder" class="form-input" />

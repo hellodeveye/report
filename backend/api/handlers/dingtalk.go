@@ -161,23 +161,89 @@ func (h *DingTalkHandler) GetTemplateDetail(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func (h *DingTalkHandler) SaveDraft(w http.ResponseWriter, r *http.Request) {
+type CreateReportPayload struct {
+	TemplateID   string `json:"template_id"`
+	TemplateName string `json:"template_name"`
+	Contents     []struct {
+		Key   string      `json:"key"`
+		Value interface{} `json:"value"`
+	} `json:"contents"`
+}
+
+func (h *DingTalkHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, ok := auth.GetUserOpenID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	var requestData dingtalk.CreateReportRequest
-
-	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+	var payload CreateReportPayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	response, err := h.reportService.SaveDraft(userID, &requestData)
+	// 1. Get template detail to map fields
+	templateDetail, err := h.reportService.GetTemplateDetail(userID, payload.TemplateName)
 	if err != nil {
-		http.Error(w, "Failed to save draft", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Failed to get template details: %v", err), http.StatusInternalServerError)
+		return
+	}
+	if templateDetail.ErrCode != 0 {
+		// Marshal the result to a string for better error logging
+		resultBytes, _ := json.Marshal(templateDetail.Result)
+		http.Error(w, fmt.Sprintf("Failed to get template details from DingTalk, errorCode: %d, result: %s", templateDetail.ErrCode, string(resultBytes)), http.StatusInternalServerError)
+		return
+	}
+
+	fieldMap := make(map[string]dingtalk.Field)
+	for _, field := range templateDetail.Result.Fields {
+		fieldMap[field.FieldName] = field
+	}
+
+	// 2. Build the final request for DingTalk API
+	var reportContents []dingtalk.ContentItem
+	for _, content := range payload.Contents {
+		field, exists := fieldMap[content.Key]
+		if !exists {
+			// Skip content if key doesn't match any field in the template
+			continue
+		}
+
+		reportContents = append(reportContents, dingtalk.ContentItem{
+			Key:         field.FieldName,
+			Sort:        field.Sort,
+			Type:        field.Type,
+			Content:     content.Value.(string),
+			ContentType: "markdown", // 默认markdown
+		})
+	}
+
+	createReq := dingtalk.CreateReportRequest{
+		CreateReportParam: struct {
+			Contents   []dingtalk.ContentItem `json:"contents"`
+			DDFrom     string                 `json:"dd_from"`
+			TemplateID string                 `json:"template_id"`
+			UserID     string                 `json:"userid"`
+			ToChat     bool                   `json:"to_chat"`
+			ToCIDs     []string               `json:"to_cids"`
+			ToUserIDs  []string               `json:"to_userids"`
+		}{
+			TemplateID: payload.TemplateID,
+			UserID:     userID,
+			Contents:   reportContents,
+			// Other fields can be set if needed
+		},
+	}
+
+	response, err := h.reportService.Create(userID, &createReq)
+	if err != nil {
+		http.Error(w, "Failed to create report", http.StatusInternalServerError)
+		return
+	}
+
+	if response.ErrCode != 0 {
+		http.Error(w, fmt.Sprintf("Failed to create report on DingTalk: %s", response.ErrMsg), http.StatusInternalServerError)
 		return
 	}
 

@@ -58,19 +58,7 @@ func (c *Client) GetUserAccessToken(code string) (*models.DingTalkOAuthTokenResp
 		"grantType":    "authorization_code",
 	}
 
-	jsonData, err := json.Marshal(requestBody)
-	if err != nil {
-		return nil, fmt.Errorf("marshal request body failed: %v", err)
-	}
-
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, fmt.Errorf("create request failed: %v", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.httpClient.R().SetBody(jsonData).Post(url)
+	resp, err := c.httpClient.R().SetBody(requestBody).Post(url)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %v", err)
 	}

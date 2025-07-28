@@ -240,17 +240,14 @@ type ContentItem struct {
 }
 
 type CreateReportResponse struct {
-	ErrCode int    `json:"errcode"`
-	ErrMsg  string `json:"errmsg"`
-	Result  struct {
-		ReportID string `json:"report_id"`
-		Status   string `json:"status"`
-	} `json:"result"`
+	ErrCode   int    `json:"errcode"`
+	ErrMsg    string `json:"errmsg"`
+	Result    string `json:"result"`
 	RequestID string `json:"request_id"`
 }
 
 // 保存草稿
-func (s *ReportService) SaveDraft(userId string, draftRequest *CreateReportRequest) (*CreateReportResponse, error) {
+func (s *ReportService) Create(userId string, createReq *CreateReportRequest) (*CreateReportResponse, error) {
 	accessToken, err := s.client.GetAccessToken()
 	if err != nil {
 		return nil, err
@@ -258,21 +255,7 @@ func (s *ReportService) SaveDraft(userId string, draftRequest *CreateReportReque
 
 	url := "https://oapi.dingtalk.com/topapi/report/create?access_token=" + accessToken.AccessToken
 
-	// 设置草稿状态
-	if draftRequest.CreateReportParam.ToChat {
-		// 如果是草稿，不发送到聊天
-		// 钉钉API中，to_chat=true表示发送，false表示草稿
-		// 为了保存草稿，我们设置to_chat=false
-		// 注意：这里可能需要根据实际需求调整
-		// 保持原始设置，由调用者控制
-	}
-
-	jsonData, err := json.Marshal(draftRequest)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := s.client.httpClient.R().SetBody(jsonData).Post(url)
+	resp, err := s.client.httpClient.R().SetBody(createReq).Post(url)
 	if err != nil {
 		return nil, err
 	}
@@ -314,6 +297,9 @@ func (s *ReportService) SaveContent(userId string, param SaveReportParam) (*Save
 	url := "https://oapi.dingtalk.com/topapi/report/savecontent?access_token=" + accessToken.AccessToken
 
 	jsonData, err := json.Marshal(param)
+	if err != nil {
+		return nil, err
+	}
 
 	resp, err := s.client.httpClient.R().SetBody(jsonData).Post(url)
 	if err != nil {

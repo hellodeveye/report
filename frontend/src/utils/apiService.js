@@ -174,6 +174,29 @@ class ApiService {
         return [];
     }
 
+    async sendDingTalkReport(reportData) {
+        const provider = this.getProvider();
+        if (provider !== 'dingtalk') {
+            throw new Error("This function is only available for DingTalk.");
+        }
+
+        const url = `${this.baseURL}/dingtalk/reports`;
+        const response = await authService.authenticatedFetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(reportData),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));
+            throw new Error(errorData.message || '发送报告失败');
+        }
+
+        return await response.json();
+    }
+
     // 字段类型映射
     mapFeishuFieldType(apiType) {
         const typeMap = {
