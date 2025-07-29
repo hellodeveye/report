@@ -6,6 +6,7 @@ import VueTailwindDatepicker from 'vue-tailwind-datepicker';
 import LoginPage from './components/LoginPage.vue';
 import AuthCallback from './components/AuthCallback.vue';
 import SettingsPage from './components/SettingsPage.vue';
+import TurndownService from 'turndown';
 import { reportSummarizer, aiService } from './utils/aiUtils.js';
 import { apiService } from './utils/apiService.js';
 import { authService } from './utils/authService.js';
@@ -54,12 +55,22 @@ const dateValue = ref(getThisWeekRange());
 
 const isProfileMenuOpen = ref(false);
 const profileMenuNode = ref(null);
+const isActionMenuOpen = ref(false);
+const actionMenuNode = ref(null);
+const isContentMenuOpen = ref(false);
+const contentMenuNode = ref(null);
 const notifications = ref([]);
 
 onMounted(async () => {
   document.addEventListener('click', (event) => {
     if (profileMenuNode.value && !profileMenuNode.value.contains(event.target)) {
       isProfileMenuOpen.value = false;
+    }
+    if (actionMenuNode.value && !actionMenuNode.value.contains(event.target)) {
+      isActionMenuOpen.value = false;
+    }
+    if (contentMenuNode.value && !contentMenuNode.value.contains(event.target)) {
+      isContentMenuOpen.value = false;
     }
   });
   
@@ -145,6 +156,8 @@ const loadTemplates = async () => {
         }
       })
     );
+
+    detailedTemplates.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
 
     templates.value = detailedTemplates.filter(t => t.fields && t.fields.length > 0);
     if (templates.value.length > 0) {
@@ -311,6 +324,83 @@ const generateDraft = async () => {
   }
 };
 
+const saveDraft = () => {
+  if (!currentTemplate.value) {
+    addNotification('无法保存草稿', '请先选择一个模板。', 'error');
+    return;
+  }
+  try {
+    const draftData = JSON.parse(JSON.stringify(formValues.value)); // Deep copy to prevent side effects
+
+    // Do not save file objects as they are not serializable
+    // and cannot be restored from localStorage.
+    if (currentTemplate.value) {
+      currentTemplate.value.fields.forEach(field => {
+        if (field.type === 'image' || field.type === 'attachment') {
+          delete draftData[field.id];
+        }
+      });
+    }
+
+    const draft = {
+      formValues: draftData,
+      timestamp: new Date().toISOString()
+    };
+    localStorage.setItem(`draft_${currentTemplate.value.id}`, JSON.stringify(draft));
+    addNotification('草稿已保存', '草稿已成功保存到本地。', 'success');
+  } catch (e) {
+    console.error('保存草稿失败:', e);
+    addNotification('保存草稿失败', '无法保存草稿，可能是本地存储已满。', 'error');
+  } finally {
+    isActionMenuOpen.value = false;
+  }
+};
+
+const exportContent = () => {
+  if (sourceReports.value.length === 0) {
+    addNotification('没有可导出的内容', '请先获取报告内容。', 'info');
+    isContentMenuOpen.value = false;
+    return;
+  }
+
+  try {
+    const turndownService = new TurndownService({
+      headingStyle: 'atx',
+      codeBlockStyle: 'fenced'
+    });
+    
+    let markdownContent = `# 报告内容\n\n`;
+
+    sourceReports.value.forEach(report => {
+      markdownContent += `## ${report.title}\n\n`;
+      report.fields.forEach(field => {
+        markdownContent += `### ${field.name}\n`;
+        // Convert HTML value to Markdown
+        const markdownValue = turndownService.turndown(field.value);
+        markdownContent += `${markdownValue}\n\n`;
+      });
+    });
+
+    const blob = new Blob([markdownContent], { type: 'text/markdown;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    
+    const date = new Date().toISOString().slice(0, 10);
+    link.download = `报告内容-${date}.md`;
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    addNotification('导出成功', 'Markdown文件已开始下载。', 'success');
+  } catch (error) {
+    console.error('导出Markdown失败:', error);
+    addNotification('导出失败', '生成Markdown文件时发生错误。', 'error');
+  } finally {
+    isContentMenuOpen.value = false;
+  }
+};
+
 const initializeFormValues = () => {
   const values = {};
   if (currentTemplate.value) {
@@ -319,6 +409,22 @@ const initializeFormValues = () => {
     });
   }
   formValues.value = values;
+
+  // Try to load a saved draft
+  if (currentTemplate.value) {
+    const savedDraft = localStorage.getItem(`draft_${currentTemplate.value.id}`);
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft);
+        // Merge draft values, this will not overwrite file fields as they were not saved.
+        formValues.value = { ...formValues.value, ...draft.formValues };
+        addNotification('草稿已加载', '已自动加载上次保存的草稿。', 'info');
+      } catch (e) {
+        console.error('加载草稿失败:', e);
+        localStorage.removeItem(`draft_${currentTemplate.value.id}`); // Remove corrupted draft
+      }
+    }
+  }
 };
 
 watch(selectedTemplateId, initializeFormValues, { immediate: true });
@@ -542,7 +648,7 @@ const openSettings = () => {
                           <option v-for="template in templates" :key="template.id" :value="template.id">{{ template.name }}</option>
                       </select>
                   </div>
-                  <div class="md:col-span-2 flex space-x-2 items-end">
+                  <div class="md:col-span-2 flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2">
                     <button @click="getReports" class="w-full flex items-center justify-center px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-white/30 text-gray-800 backdrop-blur-sm border border-white/40 shadow-lg hover:bg-white/50 hover:text-gray-900 focus:outline-none">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 mr-2">
                         <path fill-rule="evenodd" d="M10.5 3.75a6.75 6.75 0 1 0 0 13.5 6.75 6.75 0 0 0 0-13.5ZM2.25 10.5a8.25 8.25 0 1 1 14.59 5.28l4.69 4.69a.75.75 0 1 1-1.06 1.06l-4.69-4.69A8.25 8.25 0 0 1 2.25 10.5Z" clip-rule="evenodd" />
@@ -563,7 +669,26 @@ const openSettings = () => {
           
           <div class="flex-grow md:grid md:grid-cols-2 gap-4 p-4 overflow-y-auto custom-scrollbar space-y-4 md:space-y-0">
               <section class="bg-white/50 backdrop-blur-sm rounded-lg shadow-md border border-white/20 md:flex md:flex-col md:overflow-hidden">
-                  <h2 class="text-lg font-semibold p-4 border-b border-white/20">报告内容</h2>
+                  <div class="flex items-center justify-between p-4 border-b border-white/20">
+                    <h2 class="text-lg font-semibold">报告内容</h2>
+                    <div class="relative flex-shrink-0" ref="contentMenuNode">
+                      <button @click="isContentMenuOpen = !isContentMenuOpen" class="p-2 rounded-full text-gray-500 hover:bg-gray-500/10 hover:text-gray-800 focus:outline-none transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                        </svg>
+                      </button>
+                      <transition enter-active-class="transition ease-out duration-100" enter-from-class="transform opacity-0 scale-95" enter-to-class="transform opacity-100 scale-100" leave-active-class="transition ease-in duration-75" leave-from-class="transform opacity-100 scale-100" leave-to-class="transform opacity-0 scale-95">
+                        <div v-if="isContentMenuOpen" class="absolute right-0 top-full mt-2 w-48 bg-white/90 backdrop-blur-sm rounded-md shadow-lg py-1 z-20 border border-white/30">
+                          <a href="#" @click.prevent="exportContent" class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-500/10 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-3 text-gray-500">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9.75v6.75m0 0l-3-3m3 3l3-3m-8.25 6a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+                            </svg>
+                            <span>导出</span>
+                          </a>
+                        </div>
+                      </transition>
+                    </div>
+                  </div>
                   <div class="p-4 space-y-2 custom-scrollbar md:overflow-y-auto md:flex-grow">
                       <div v-if="sourceReports.length === 0" class="text-gray-500 text-center pt-10">报告内容将在此处显示。</div>
                       <div v-for="report in sourceReports" :key="report.id" class="border rounded-md">
@@ -579,7 +704,26 @@ const openSettings = () => {
               </section>
 
               <section class="bg-white/50 backdrop-blur-sm rounded-lg shadow-md border border-white/20 md:flex md:flex-col md:overflow-hidden">
-                   <h2 class="text-lg font-semibold p-4 border-b border-white/20">{{ currentTemplate?.name || '生成的草稿' }}</h2>
+                  <div class="flex items-center justify-between p-4 border-b border-white/20">
+                    <h2 class="text-lg font-semibold">{{ currentTemplate?.name || '生成的草稿' }}</h2>
+                    <div class="relative flex-shrink-0" ref="actionMenuNode">
+                      <button @click="isActionMenuOpen = !isActionMenuOpen" class="p-2 rounded-full text-gray-500 hover:bg-gray-500/10 hover:text-gray-800 focus:outline-none transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                        </svg>
+                      </button>
+                      <transition enter-active-class="transition ease-out duration-100" enter-from-class="transform opacity-0 scale-95" enter-to-class="transform opacity-100 scale-100" leave-active-class="transition ease-in duration-75" leave-from-class="transform opacity-100 scale-100" leave-to-class="transform opacity-0 scale-95">
+                          <div v-if="isActionMenuOpen" class="absolute right-0 top-full mt-2 w-48 bg-white/90 backdrop-blur-sm rounded-md shadow-lg py-1 z-20 border border-white/30">
+                              <a href="#" @click.prevent="saveDraft" class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-500/10 transition-colors">
+                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-3 text-gray-500">
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                  </svg>
+                                  <span>保存草稿</span>
+                              </a>
+                          </div>
+                      </transition>
+                    </div>
+                  </div>
                    <div class="p-4 space-y-4 custom-scrollbar md:flex-grow md:overflow-y-auto">
                       <div v-if="currentTemplate" v-for="field in (currentTemplate.fields || [])" :key="field.id" class="space-y-2">
                           <label :for="field.id" class="font-semibold text-gray-700">{{ field.label }}</label>
