@@ -543,9 +543,20 @@ const openSettings = () => {
                       </select>
                   </div>
                   <div class="md:col-span-2 flex space-x-2 items-end">
-                    <button @click="getReports" class="w-full px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-white/30 text-gray-800 backdrop-blur-sm border border-white/40 shadow-lg hover:bg-white/50 hover:text-gray-900 focus:outline-none">获取报告</button>
-                    <button @click="generateDraft" class="w-full px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-indigo-500/20 text-indigo-800 backdrop-blur-sm border border-indigo-500/30 shadow-lg hover:bg-indigo-500/40 hover:text-indigo-900 focus:outline-none">生成草稿</button>
-                    <button v-if="currentUser?.provider === 'dingtalk'" @click="sendReport" class="w-full px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-blue-500/20 text-blue-800 backdrop-blur-sm border border-blue-500/30 shadow-lg hover:bg-blue-500/40 hover:text-blue-900 focus:outline-none">发送报告</button>
+                    <button @click="getReports" class="w-full flex items-center justify-center px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-white/30 text-gray-800 backdrop-blur-sm border border-white/40 shadow-lg hover:bg-white/50 hover:text-gray-900 focus:outline-none">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 mr-2">
+                        <path fill-rule="evenodd" d="M10.5 3.75a6.75 6.75 0 1 0 0 13.5 6.75 6.75 0 0 0 0-13.5ZM2.25 10.5a8.25 8.25 0 1 1 14.59 5.28l4.69 4.69a.75.75 0 1 1-1.06 1.06l-4.69-4.69A8.25 8.25 0 0 1 2.25 10.5Z" clip-rule="evenodd" />
+                      </svg>
+                      获取报告
+                    </button>
+                    <button @click="generateDraft" class="w-full flex items-center justify-center px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-gradient-to-br from-purple-500 to-indigo-600 text-white backdrop-blur-sm border border-transparent shadow-lg hover:shadow-indigo-500/40 hover:from-purple-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.572L16.5 21.75l-.398-1.178a3.375 3.375 0 00-2.456-2.456L12.5 18l1.178-.398a3.375 3.375 0 002.456-2.456L16.5 14.25l.398 1.178a3.375 3.375 0 002.456 2.456L20.25 18l-1.178.398a3.375 3.375 0 00-2.456 2.456z" /></svg>
+                      生成草稿
+                    </button>
+                    <button v-if="currentUser?.provider === 'dingtalk'" @click="sendReport" class="w-full flex items-center justify-center px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-blue-500/20 text-blue-800 backdrop-blur-sm border border-blue-500/30 shadow-lg hover:bg-blue-500/40 hover:text-blue-900 focus:outline-none">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg>
+                      发送报告
+                    </button>
                   </div>
               </div>
           </section>
