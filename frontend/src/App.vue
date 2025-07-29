@@ -550,10 +550,10 @@ const openSettings = () => {
               </div>
           </section>
           
-          <div class="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4 p-4 overflow-hidden">
-              <section class="bg-white/50 backdrop-blur-sm rounded-lg shadow-md flex flex-col overflow-hidden border border-white/20">
+          <div class="flex-grow md:grid md:grid-cols-2 gap-4 p-4 overflow-y-auto custom-scrollbar space-y-4 md:space-y-0">
+              <section class="bg-white/50 backdrop-blur-sm rounded-lg shadow-md border border-white/20 md:flex md:flex-col md:overflow-hidden">
                   <h2 class="text-lg font-semibold p-4 border-b border-white/20">报告内容</h2>
-                  <div class="overflow-y-auto flex-grow p-4 space-y-2 custom-scrollbar">
+                  <div class="p-4 space-y-2 custom-scrollbar md:overflow-y-auto md:flex-grow">
                       <div v-if="sourceReports.length === 0" class="text-gray-500 text-center pt-10">报告内容将在此处显示。</div>
                       <div v-for="report in sourceReports" :key="report.id" class="border rounded-md">
                           <div @click="toggleReportDetail(report)" class="p-3 flex justify-between items-center cursor-pointer hover:bg-gray-50">
@@ -567,9 +567,9 @@ const openSettings = () => {
                   </div>
               </section>
 
-              <section class="bg-white/50 backdrop-blur-sm rounded-lg shadow-md flex flex-col overflow-hidden border border-white/20">
+              <section class="bg-white/50 backdrop-blur-sm rounded-lg shadow-md border border-white/20 md:flex md:flex-col md:overflow-hidden">
                    <h2 class="text-lg font-semibold p-4 border-b border-white/20">{{ currentTemplate?.name || '生成的草稿' }}</h2>
-                   <div class="flex-grow overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                   <div class="p-4 space-y-4 custom-scrollbar md:flex-grow md:overflow-y-auto">
                       <div v-if="currentTemplate" v-for="field in (currentTemplate.fields || [])" :key="field.id" class="space-y-2">
                           <label :for="field.id" class="font-semibold text-gray-700">{{ field.label }}</label>
                            
