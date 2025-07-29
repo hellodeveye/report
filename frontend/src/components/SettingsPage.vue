@@ -71,16 +71,16 @@ onMounted(() => {
         返回主界面
       </button>
     </div>
-    <div class="flex-grow flex overflow-hidden">
+    <div class="flex-grow flex flex-col md:flex-row overflow-hidden">
       <!-- Left: Tab navigation -->
-      <aside class="w-56 flex-shrink-0 p-4 border-r border-white/30 overflow-y-auto">
-        <nav class="space-y-2">
+      <aside class="w-full md:w-56 flex-shrink-0 p-4 border-b md:border-r md:border-b-0 border-white/30">
+        <nav class="flex space-x-2 md:space-x-0 md:flex-col md:space-y-2 -mx-2 px-2 md:mx-0 md:px-0 overflow-x-auto pb-2 md:pb-0">
           <button
             v-for="tab in tabs"
             :key="tab.id"
             @click="activeTab = tab.id"
             :class="[
-              'w-full flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors',
+              'flex-shrink-0 md:w-full flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors',
               activeTab === tab.id
                 ? 'bg-indigo-100/80 text-indigo-700 shadow-sm'
                 : 'text-gray-600 hover:bg-gray-500/10 hover:text-gray-800',
@@ -94,25 +94,27 @@ onMounted(() => {
       
       <!-- Right: Content -->
       <main class="flex-grow overflow-y-auto">
-        <div class="p-8 max-w-3xl mx-auto w-full">
+        <div class="p-4 md:p-8 max-w-3xl mx-auto w-full">
           <transition name="fade" mode="out-in">
             <div :key="activeTab">
               <!-- Account Settings -->
               <div v-if="activeTab === 'account'">
                 <h3 class="text-xl font-bold text-gray-800 mb-6">账户资料</h3>
-                <div class="bg-white/80 rounded-lg shadow p-8 border border-white/30">
-                  <div class="flex items-center space-x-6">
+                <div class="bg-white/80 rounded-lg shadow p-6 md:p-8 border border-white/30">
+                  <div class="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6">
                     <!-- Avatar -->
-                    <img v-if="props.currentUser?.avatar_url"
-                         :src="props.currentUser.avatar_url"
-                         :alt="props.currentUser.name"
-                         class="h-24 w-24 rounded-full object-cover border-4 border-white shadow-lg">
-                    <span v-else
-                          class="inline-flex items-center justify-center h-24 w-24 rounded-full text-white text-3xl font-bold bg-indigo-500">
-                      {{ props.currentUser?.name?.charAt(0)?.toUpperCase() || 'U' }}
-                    </span>
+                    <div class="flex-shrink-0">
+                      <img v-if="props.currentUser?.avatar_url"
+                           :src="props.currentUser.avatar_url"
+                           :alt="props.currentUser.name"
+                           class="h-24 w-24 rounded-full object-cover border-4 border-white shadow-lg">
+                      <span v-else
+                            class="inline-flex items-center justify-center h-24 w-24 rounded-full text-white text-3xl font-bold bg-indigo-500">
+                        {{ props.currentUser?.name?.charAt(0)?.toUpperCase() || 'U' }}
+                      </span>
+                    </div>
                     <!-- User Info -->
-                    <div class="flex-grow">
+                    <div class="flex-grow text-center md:text-left">
                       <h4 class="text-2xl font-bold text-gray-800">{{ props.currentUser?.name || '用户' }}</h4>
                       <p class="text-gray-500">{{ props.currentUser?.email || '无可用邮箱' }}</p>
                       <span v-if="props.currentUser?.provider" class="mt-2 inline-block px-3 py-1 text-xs font-semibold rounded-full"
@@ -177,12 +179,12 @@ onMounted(() => {
                 <h3 class="text-xl font-bold text-gray-800 mb-6">外观</h3>
                 <div class="space-y-6">
                   <div class="bg-white/80 rounded-lg shadow p-6 border border-white/30">
-                    <div class="flex items-center justify-between">
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between">
                       <div>
                         <p class="font-semibold text-gray-700">深色模式</p>
                         <p class="text-sm text-gray-500 mt-1">为界面启用或禁用深色主题。</p>
                       </div>
-                      <label class="relative inline-flex items-center cursor-pointer">
+                      <label class="relative inline-flex items-center cursor-pointer mt-3 md:mt-0">
                         <input type="checkbox" v-model="settings.darkMode" class="sr-only peer">
                         <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-indigo-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                       </label>
@@ -196,22 +198,22 @@ onMounted(() => {
                 <h3 class="text-xl font-bold text-gray-800 mb-6">通知</h3>
                 <div class="space-y-6">
                   <div class="bg-white/80 rounded-lg shadow p-6 border border-white/30 space-y-4 divide-y divide-gray-200/50">
-                    <div class="flex items-center justify-between pt-4 first:pt-0">
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between pt-4 first:pt-0">
                        <div>
                         <p class="font-semibold text-gray-700">邮件通知</p>
                         <p class="text-sm text-gray-500 mt-1">接收关于账户活动和更新的邮件。</p>
                       </div>
-                      <label class="relative inline-flex items-center cursor-pointer">
+                      <label class="relative inline-flex items-center cursor-pointer mt-3 md:mt-0">
                         <input type="checkbox" v-model="settings.notifications.email" class="sr-only peer">
                         <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-indigo-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                       </label>
                     </div>
-                    <div class="flex items-center justify-between pt-4 first:pt-0">
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between pt-4 first:pt-0">
                       <div>
                         <p class="font-semibold text-gray-400">推送通知</p>
                         <p class="text-sm text-gray-400 mt-1">通过您的设备接收实时推送通知。</p>
                       </div>
-                      <label class="relative inline-flex items-center cursor-pointer">
+                      <label class="relative inline-flex items-center cursor-pointer mt-3 md:mt-0">
                         <input type="checkbox" v-model="settings.notifications.push" class="sr-only peer" disabled>
                         <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600 cursor-not-allowed"></div>
                         <span class="ml-3 text-sm font-medium text-gray-400">（即将推出）</span>
