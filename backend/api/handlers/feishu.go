@@ -36,64 +36,6 @@ func NewFeishuHandler() *FeishuHandler {
 	}
 }
 
-// GetTemplates 获取模板列表
-func (h *FeishuHandler) GetTemplates(w http.ResponseWriter, r *http.Request) {
-	templates := []models.TemplateInfo{
-		{ID: "monthly_report", Name: "工作月报"},
-		{ID: "daily_report", Name: "技术部-工作日报"},
-		{ID: "daily_scrum", Name: "每日站会"},
-		{ID: "complex_template", Name: "复杂模板"},
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(templates); err != nil {
-		http.Error(w, "Failed to encode templates", http.StatusInternalServerError)
-	}
-}
-
-// GetRules 获取报告规则
-func (h *FeishuHandler) GetTemplateDetail(w http.ResponseWriter, r *http.Request) {
-	name := r.URL.Query().Get("name")
-
-	rules, err := h.reportService.QueryRules(name)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("查询规则失败: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	// 设置响应头
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	// 返回响应
-	if err := json.NewEncoder(w).Encode(rules); err != nil {
-		http.Error(w, fmt.Sprintf("编码响应失败: %v", err), http.StatusInternalServerError)
-		return
-	}
-}
-
-func (h *FeishuHandler) GetReports(w http.ResponseWriter, r *http.Request) {
-	ruleId := r.URL.Query().Get("rule_id")
-	startTime := r.URL.Query().Get("start_time")
-	endTime := r.URL.Query().Get("end_time")
-
-	data, err := h.reportService.QueryReports(ruleId, startTime, endTime)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("查询报告失败: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	// 设置响应头
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	// 返回响应
-	if err := json.NewEncoder(w).Encode(data); err != nil {
-		http.Error(w, fmt.Sprintf("编码响应失败: %v", err), http.StatusInternalServerError)
-		return
-	}
-}
-
 // Login 飞书登录处理 - 返回授权URL给前端
 func (h *FeishuHandler) Login(w http.ResponseWriter, r *http.Request) {
 	authURL, state, err := h.authService.GenerateAuthURL()

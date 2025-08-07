@@ -2,8 +2,10 @@ package api
 
 import (
 	"github.com/gorilla/mux"
+	"github.com/graphql-go/handler"
 	"github.com/hellodeveye/report/api/handlers"
 	"github.com/hellodeveye/report/api/middleware"
+	"github.com/hellodeveye/report/graphql"
 )
 
 // SetupRoutes 设置所有API路由
@@ -31,20 +33,20 @@ func SetupRoutes() *mux.Router {
 	api.HandleFunc("/auth/dingtalk/exchange", dingTalkHandler.ExchangeCode).Methods("POST")
 	api.HandleFunc("/auth/logout", feishuHandler.Logout).Methods("POST")
 
+	// 创建 GraphQL HTTP 处理器
+	schema := graphql.SetupGraphQLSchema()
+	h := handler.New(&handler.Config{
+		Schema:   schema,
+		Pretty:   true,
+		GraphiQL: true,
+	})
+	r.HandleFunc("/graphql", h.ServeHTTP)
+
 	// 需要认证的路由
 	protected := api.PathPrefix("").Subrouter()
 	protected.Use(middleware.AuthMiddleware)
 
 	protected.HandleFunc("/auth/user", feishuHandler.GetCurrentUser).Methods("GET")
-
-	protected.HandleFunc("/dingtalk/templates", dingTalkHandler.GetTemplates).Methods("GET")
-	protected.HandleFunc("/dingtalk/templates/detail", dingTalkHandler.GetTemplateDetail).Methods("GET")
-	protected.HandleFunc("/dingtalk/reports", dingTalkHandler.GetReports).Methods("GET")
-	protected.HandleFunc("/dingtalk/reports", dingTalkHandler.Create).Methods("POST")
-
-	protected.HandleFunc("/feishu/templates", feishuHandler.GetTemplates).Methods("GET")
-	protected.HandleFunc("/feishu/templates/detail", feishuHandler.GetTemplateDetail).Methods("GET")
-	protected.HandleFunc("/feishu/reports", feishuHandler.GetReports).Methods("GET")
 
 	return r
 }
