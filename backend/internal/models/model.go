@@ -2,14 +2,13 @@ package models
 
 // User 用户信息
 type User struct {
-	OpenID   string   `json:"open_id"`
-	UnionID  string   `json:"union_id"`
-	UserID   string   `json:"userid"`
-	Name     string   `json:"name"`
-	Avatar   string   `json:"avatar_url"`
-	Email    string   `json:"email"`
-	Mobile   string   `json:"mobile"`
-	Provider Provider `json:"provider"`
+	OpenID  string `json:"open_id"`
+	UnionID string `json:"union_id"`
+	UserID  string `json:"userid"`
+	Name    string `json:"name"`
+	Avatar  string `json:"avatar_url"`
+	Email   string `json:"email"`
+	Mobile  string `json:"mobile"`
 }
 
 // AuthToken JWT认证token
@@ -47,27 +46,17 @@ type DingTalkUserInfoResponse struct {
 	StateCode string `json:"stateCode"`
 }
 
-// Provider 表示认证提供商
-type Provider string
-
-const (
-	ProviderFeishu   Provider = "feishu"
-	ProviderDingTalk Provider = "dingtalk"
-)
-
 // AuthRequest 通用认证请求
 type AuthRequest struct {
-	Provider Provider `json:"provider"`
-	Code     string   `json:"code"`
-	State    string   `json:"state"`
+	Code  string `json:"code"`
+	State string `json:"state"`
 }
 
 // AuthResponse 通用认证响应
 type AuthResponse struct {
-	Token     string   `json:"token"`
-	ExpiresAt int64    `json:"expires_at"`
-	User      User     `json:"user"`
-	Provider  Provider `json:"provider"`
+	Token     string `json:"token"`
+	ExpiresAt int64  `json:"expires_at"`
+	User      User   `json:"user"`
 }
 
 type DingTalkAccessTokenResponse struct {

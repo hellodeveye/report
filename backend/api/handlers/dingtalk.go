@@ -46,7 +46,6 @@ func (h *DingTalkHandler) Login(w http.ResponseWriter, r *http.Request) {
 	response := map[string]string{
 		"auth_url": authURL,
 		"state":    state,
-		"provider": "dingtalk",
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -102,7 +101,6 @@ func (h *DingTalkHandler) ExchangeCode(w http.ResponseWriter, r *http.Request) {
 		Token:     token,
 		ExpiresAt: expiresAt,
 		User:      *user,
-		Provider:  models.ProviderDingTalk,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

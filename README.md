@@ -1,12 +1,12 @@
 # 智能报告助手
 
-本工具是一款旨在帮助用户自动生成周报和月报草稿的Web应用，它能从飞书和钉钉中拉取并汇总您的日报。
+本工具是一款旨在帮助用户自动生成周报和月报草稿的Web应用，它能从钉钉中拉取并汇总您的日报。
 
 ## 🚀 项目架构
 
 项目主要分为三个部分：
 
--   `/backend`: Go语言开发的后端服务，负责处理核心业务逻辑、与飞书/钉钉开放平台通信，并提供API接口。
+-   `/backend`: Go语言开发的后端服务，负责处理核心业务逻辑、与钉钉开放平台通信，并提供API接口。
 -   `/frontend`: 基于Vue.js的单页应用，为用户提供友好的操作界面。
 
 ## 🛠️ 技术栈
@@ -20,8 +20,6 @@
 ### 环境准备
 
 -   Docker 和 Docker Compose
--   `kubectl` (用于Kubernetes部署，可选)
--   一个飞书应用 (`App ID` 和 `App Secret`)
 -   一个钉钉应用 (`App Key` 和 `App Secret`)
 -   Node.js 18+ 和 Go 1.18+ (用于本地开发)
 
@@ -29,7 +27,6 @@
 
 1.  **创建应用:**
     
-    -   **飞书:** 在 [飞书开放平台](https://open.feishu.cn/app) 创建应用，并将重定向URI设置为 `http://localhost:5173/feishu/callback`。
     -   **钉钉:** 在 [钉钉开放平台](https://open-dev.dingtalk.com) 创建应用，并将重定向URI设置为 `http://localhost:5173/dingtalk/callback`。
 
 2.  **配置环境变量:**
@@ -37,12 +34,6 @@
     在项目根目录创建一个 `.env` 文件，并填入您的应用凭证：
 
     ```env
-    # 飞书配置
-    FEISHU_APP_ID=your_app_id
-    FEISHU_APP_SECRET=your_app_secret
-    FEISHU_REDIRECT_URI=http://localhost:5173/auth/callback
-    FEISHU_BASE_URL=https://open.feishu.cn
-    
     # 钉钉配置
     DINGTALK_APP_KEY=your_dingtalk_app_key
     DINGTALK_APP_SECRET=your_dingtalk_app_secret
@@ -69,20 +60,20 @@
 ## API 集成说明
 
 ### 认证接口
-- **登录**: `GET /api/auth/{provider}/login` - 获取OAuth登录URL (provider: `feishu` 或 `dingtalk`)
-- **交换Code**: `POST /api/auth/{provider}/exchange` - 用授权码换取JWT
+- **登录**: `GET /api/auth/dingtalk/login` - 获取OAuth登录URL
+- **交换Code**: `POST /api/auth/dingtalk/exchange` - 用授权码换取JWT
 - **当前用户**: `GET /api/auth/user` - 获取当前用户信息 (需认证)
 - **登出**: `POST /api/auth/logout` - 退出登录
 
 ### 模板接口 (需认证)
-- **URL**: `GET /api/feishu/templates/detail`
+- **URL**: `GET /api/dingtalk/templates/detail`
 - **查询参数**:
   - `name`: 模板名称 (可选)
 
 ### 报告接口 (需认证)
 - **URL**: `GET /api/reports`
 - **查询参数**:
-  - `rule_id`: 模板ID (可选)
+  - `template_name`: 模板名称 (可选)
   - `start_time`: 开始时间戳 (可选)
   - `end_time`: 结束时间戳 (可选)
 
@@ -94,7 +85,7 @@
 ### 前端
 前端应用位于 `frontend` 目录，是一个基于Vite的Vue.js项目。
 
-- **API服务**: `frontend/src/utils/aiService.js` 中的 `FeishuApiService` 封装了对后端API的调用。
+- **API服务**: `frontend/src/utils/apiService.js` 封装了对后端API的调用。
 - **认证服务**: `frontend/src/utils/authService.js` 处理所有与用户认证相关的逻辑。
 - **AI集成**: 前端直接调用 [DeepSeek](https://platform.deepseek.com/) API实现内容的智能生成与优化。
 

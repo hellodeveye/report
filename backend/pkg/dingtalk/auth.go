@@ -69,13 +69,12 @@ func (s *AuthService) ExchangeCodeForUser(code string) (*models.User, error) {
 // convertToUser 将钉钉用户信息转换为统一的用户模型
 func (s *AuthService) convertToUser(userResp *models.DingTalkUserInfoResponse) *models.User {
 	return &models.User{
-		OpenID:   userResp.OpenId,         // 钉钉的openId
-		UnionID:  userResp.UnionId,        // 钉钉的unionId
-		UserID:   userResp.UserID,         // 使用openId作为UserID
-		Name:     userResp.Nick,           // 用户昵称
-		Avatar:   userResp.AvatarUrl,      // 头像URL
-		Email:    userResp.Email,          // 邮箱地址
-		Mobile:   userResp.Mobile,         // 手机号码
-		Provider: models.ProviderDingTalk, // 标识为钉钉用户
+		OpenID:  userResp.OpenId,    // 钉钉的openId
+		UnionID: userResp.UnionId,   // 钉钉的unionId
+		UserID:  userResp.UserID,    // 使用openId作为UserID
+		Name:    userResp.Nick,      // 用户昵称
+		Avatar:  userResp.AvatarUrl, // 头像URL
+		Email:   userResp.Email,     // 邮箱地址
+		Mobile:  userResp.Mobile,    // 手机号码
 	}
 }

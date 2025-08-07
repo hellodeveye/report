@@ -130,13 +130,7 @@ const handleLogout = () => {
   sessionStorage.removeItem('login_welcomed');
 };
 
-const getProviderDisplayName = (provider) => {
-  return provider === 'feishu' ? '飞书' : (provider === 'dingtalk' ? '钉钉' : '未知');
-};
 
-const getProviderAvatarClass = (provider) => {
-    return provider === 'feishu' ? 'bg-indigo-500' : (provider === 'dingtalk' ? 'bg-blue-500' : 'bg-gray-500');
-};
 
 
 
@@ -567,16 +561,16 @@ const openSettings = () => {
         </div>
         
         <header class="flex-shrink-0 flex items-center justify-between border-b border-white/30 shadow-sm z-10 p-4">
-          <h1 class="text-xl font-bold text-gray-800">{{ getProviderDisplayName(currentUser?.provider) }}报告助手</h1>
+          <h1 class="text-xl font-bold text-gray-800">钉钉报告助手</h1>
           
           <div class="flex items-center space-x-3">
             <div class="relative" ref="profileMenuNode">
               <button @click="isProfileMenuOpen = !isProfileMenuOpen" class="flex items-center space-x-2 p-2 rounded-lg transition-colors duration-200" :class="[isProfileMenuOpen ? 'bg-gray-500/20' : 'hover:bg-gray-500/10']">
                 <img v-if="currentUser?.avatar_url" :src="currentUser.avatar_url" :alt="currentUser.name" class="h-8 w-8 rounded-full object-cover border border-gray-200">
-                <span v-else class="inline-flex items-center justify-center h-8 w-8 rounded-full text-white font-bold text-sm" :class="getProviderAvatarClass(currentUser?.provider)">{{ currentUser?.name?.charAt(0)?.toUpperCase() || 'U' }}</span>
+                <span v-else class="inline-flex items-center justify-center h-8 w-8 rounded-full text-white font-bold text-sm bg-blue-500">{{ currentUser?.name?.charAt(0)?.toUpperCase() || 'U' }}</span>
                 <div class="text-left">
                   <div class="text-sm font-semibold text-gray-700">{{ currentUser?.name || '用户' }}</div>
-                  <div class="text-xs text-gray-500">{{ getProviderDisplayName(currentUser?.provider) }}用户</div>
+                  <div class="text-xs text-gray-500">钉钉用户</div>
                 </div>
                 <svg class="w-4 h-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
               </button>
@@ -586,7 +580,7 @@ const openSettings = () => {
                   <div class="px-4 py-3 border-b border-gray-200/50">
                     <div class="flex items-center space-x-3 min-w-0">
                       <img v-if="currentUser?.avatar_url" :src="currentUser.avatar_url" :alt="currentUser.name" class="h-10 w-10 rounded-full object-cover border border-gray-200">
-                      <span v-else class="inline-flex items-center justify-center h-10 w-10 rounded-full text-white font-bold" :class="getProviderAvatarClass(currentUser?.provider)">
+                      <span v-else class="inline-flex items-center justify-center h-10 w-10 rounded-full text-white font-bold bg-blue-500">
                         {{ currentUser?.name?.charAt(0)?.toUpperCase() || 'U' }}
                       </span>
                       <div class="flex-1 min-w-0">
@@ -649,7 +643,7 @@ const openSettings = () => {
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.572L16.5 21.75l-.398-1.178a3.375 3.375 0 00-2.456-2.456L12.5 18l1.178-.398a3.375 3.375 0 002.456-2.456L16.5 14.25l.398 1.178a3.375 3.375 0 002.456 2.456L20.25 18l-1.178.398a3.375 3.375 0 00-2.456 2.456z" /></svg>
                       生成草稿
                     </button>
-                    <button v-if="currentUser?.provider === 'dingtalk'" @click="sendReport" class="w-full flex items-center justify-center px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-blue-500/20 text-blue-800 backdrop-blur-sm border border-blue-500/30 shadow-lg hover:bg-blue-500/40 hover:text-blue-900 focus:outline-none">
+                    <button @click="sendReport" class="w-full flex items-center justify-center px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-blue-500/20 text-blue-800 backdrop-blur-sm border border-blue-500/30 shadow-lg hover:bg-blue-500/40 hover:text-blue-900 focus:outline-none">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg>
                       发送报告
                     </button>

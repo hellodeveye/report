@@ -117,13 +117,8 @@ onMounted(() => {
                     <div class="flex-grow text-center md:text-left">
                       <h4 class="text-2xl font-bold text-gray-800">{{ props.currentUser?.name || '用户' }}</h4>
                       <p class="text-gray-500">{{ props.currentUser?.email || '无可用邮箱' }}</p>
-                      <span v-if="props.currentUser?.provider" class="mt-2 inline-block px-3 py-1 text-xs font-semibold rounded-full"
-                            :class="{
-                              'bg-indigo-100 text-indigo-800': props.currentUser.provider === 'feishu',
-                              'bg-blue-100 text-blue-800': props.currentUser.provider === 'dingtalk',
-                              'bg-gray-100 text-gray-800': !props.currentUser.provider
-                            }">
-                        {{ props.currentUser.provider === 'feishu' ? '飞书用户' : (props.currentUser.provider === 'dingtalk' ? '钉钉用户' : '未知来源') }}
+                      <span v-if="props.currentUser?.provider" class="mt-2 inline-block px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                        钉钉用户
                       </span>
                     </div>
                   </div>
