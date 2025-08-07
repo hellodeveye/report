@@ -126,7 +126,7 @@ onMounted(() => {
                     <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                       <div class="col-span-1">
                         <dt class="text-sm font-medium text-gray-500">UserID</dt>
-                        <dd class="mt-1 text-sm text-gray-900">{{ props.currentUser?.user_id || '--' }}</dd>
+                        <dd class="mt-1 text-sm text-gray-900">{{ props.currentUser?.userid || '--' }}</dd>
                       </div>
                       <div class="col-span-1">
                         <dt class="text-sm font-medium text-gray-500">OpenID</dt>
