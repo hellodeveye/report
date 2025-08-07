@@ -42,7 +42,11 @@ func GetDingTalkReportsResolver(p graphql.ResolveParams) (interface{}, error) {
 	endTime, _ := p.Args["end_time"].(int)
 	cursor, _ := p.Args["cursor"].(int)
 	size, _ := p.Args["size"].(int)
-	return dingtalkReportService.GetReports(userID, templateName, int64(startTime), int64(endTime), cursor, size)
+	reports, err := dingtalkReportService.GetReports(userID, templateName, int64(startTime), int64(endTime), cursor, size)
+	if err != nil {
+		return nil, err
+	}
+	return reports.Result, nil
 }
 
 func GetFeishuTemplatesResolver(p graphql.ResolveParams) (interface{}, error) {

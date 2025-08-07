@@ -88,7 +88,7 @@ class ApiService {
                }
                return reportsData.data_list.map(report => ({
                    id: report.report_id,
-                   title: `${report.template_name} - ${report.creator_name} (${new Date(report.create_time).toLocaleString('zh-CN')})`,
+                   title: `${report.template_name} - ${report.creator_name} (${new Date(parseInt(report.create_time)).toLocaleString('zh-CN')})`,
                    isCollapsed: true,
                    fields: (report.contents || []).map(content => ({
                        name: content.key,

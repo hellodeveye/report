@@ -65,7 +65,7 @@ var ReportType = graphql.NewObject(graphql.ObjectConfig{
 		"creator_id":     &graphql.Field{Type: graphql.String},
 		"dept_name":      &graphql.Field{Type: graphql.String},
 		"remark":         &graphql.Field{Type: graphql.String},
-		"create_time":    &graphql.Field{Type: graphql.Int},
+		"create_time":    &graphql.Field{Type: graphql.String},
 		"contents":       &graphql.Field{Type: graphql.NewList(ReportContentType)},
 		"read_user_list": &graphql.Field{Type: graphql.NewList(graphql.String)},
 	},

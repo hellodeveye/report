@@ -116,8 +116,8 @@ func (s *ReportService) GetReports(userID string, templateName string, startTime
 	requestBody := map[string]interface{}{
 		"userid":        userID,
 		"template_name": templateName,
-		"start_time":    startTime,
-		"end_time":      endTime,
+		"start_time":    startTime * 1000,
+		"end_time":      endTime * 1000,
 		"cursor":        cursor,
 		"size":          size,
 	}
