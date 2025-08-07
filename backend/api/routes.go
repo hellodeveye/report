@@ -40,6 +40,7 @@ func SetupRoutes() *mux.Router {
 		Pretty:   true,
 		GraphiQL: true,
 	})
+	r.HandleFunc("/graphql", h.ServeHTTP)
 
 	// 需要认证的路由
 	protected := api.PathPrefix("").Subrouter()

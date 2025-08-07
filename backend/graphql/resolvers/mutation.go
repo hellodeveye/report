@@ -49,5 +49,11 @@ func CreateDingTalkReportResolver(p graphql.ResolveParams) (interface{}, error) 
 			TemplateID: templateID, UserID: userID, Contents: reportContents,
 		},
 	}
-	return dingtalkReportService.Create(userID, &createReq)
+	createResp, err := dingtalkReportService.Create(userID, &createReq)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]interface{}{
+		"report_id": createResp.Result,
+	}, nil
 }
