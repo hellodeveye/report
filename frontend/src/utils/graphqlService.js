@@ -1,8 +1,6 @@
 import { GraphQLClient, gql } from 'graphql-request';
 import { authService } from './authService';
-
-const endpoint = '/graphql';
-
+const endpoint = (import.meta.env.VITE_API_BASE_URL || '') + '/api/graphql';
 const client = new GraphQLClient(endpoint);
 
 const graphqlService = {
@@ -21,37 +19,10 @@ const graphqlService = {
 
     if (provider === 'dingtalk') {
       query = gql`
-        query GetDingTalkTemplates($userId: String) {
+        query GetDingTalkTemplates($userId: String!) {
           dingtalkTemplates(userId: $userId) {
             name
             reportCode
-          }
-        }
-      `;
-      variables.userId = userId;
-    } else { // default to feishu
-      query = gql`
-        query GetFeishuTemplates {
-          feishuTemplates {
-            id
-            name
-          }
-        }
-      `;
-    }
-    
-    const data = await this.request(query, variables);
-    return provider === 'dingtalk' ? data.dingtalkTemplates : data.feishuTemplates;
-  },
-
-  async getTemplateDetail(provider, templateName, userId) {
-    let query;
-    const variables = { name: templateName };
-
-    if (provider === 'dingtalk') {
-      query = gql`
-        query GetDingTalkTemplateDetail($name: String!, $userId: String!) {
-          dingtalkTemplates(name: $name) {
             detail(userId: $userId) {
               id
               name
@@ -64,26 +35,34 @@ const graphqlService = {
         }
       `;
       variables.userId = userId;
-    } else { // feishu
+    } else { // default to feishu
       query = gql`
-        query GetFeishuTemplateDetail($name: String!) {
-          feishuTemplateDetail(name: $name) {
+        query GetFeishuTemplates {
+          feishuTemplates {
             id
             name
-            # Assuming form_schema is part of the detail, adjust if needed
-            # based on your actual Feishu GraphQL schema
+            # Assuming the schema supports getting fields directly.
+            # If not, the backend schema will need to be adjusted.
+            fields {
+              key
+              title
+              type
+            }
           }
         }
       `;
     }
     
     const data = await this.request(query, variables);
-    if (provider === 'dingtalk') {
-        // The query is nested, so we need to extract the detail
-        return data.dingtalkTemplates[0]?.detail;
-    }
-    return data.feishuTemplateDetail;
+    const templates = provider === 'dingtalk' 
+      ? data.dingtalkTemplates.map(t => ({ ...t, ...t.detail }))
+      : data.feishuTemplates;
+
+    // We no longer need the nested detail object for dingtalk
+    return templates.map(({ detail, ...rest }) => rest);
   },
+
+
 
   async getReports(provider, params) {
     let query;

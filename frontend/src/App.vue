@@ -146,20 +146,10 @@ const loadTemplates = async () => {
     isLoading.value = true;
     const templatesData = await apiService.getTemplates();
     
-    const detailedTemplates = await Promise.all(
-      templatesData.map(async (t) => {
-        try {
-          return await apiService.getTemplateDetail(t.name, t.id);
-        } catch (e) {
-          console.warn(`获取模板 ${t.name} 详情失败`, e);
-          return { ...t, fields: [] };
-        }
-      })
-    );
+    templatesData.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
 
-    detailedTemplates.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+    templates.value = templatesData.filter(t => t.fields && t.fields.length > 0);
 
-    templates.value = detailedTemplates.filter(t => t.fields && t.fields.length > 0);
     if (templates.value.length > 0) {
       selectedSourceTemplateId.value = templates.value[0].id;
       selectedTemplateId.value = templates.value[0].id;

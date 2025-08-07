@@ -16,80 +16,46 @@ class ApiService {
     async getTemplates() {
         const provider = this.getProvider();
         const user = authService.getUser();
-        
         try {
-            const templates = await graphqlService.getTemplates(provider, user?.id);
-            // 钉钉和飞书返回的格式需要统一
+            const templates = await graphqlService.getTemplates(provider, user?.userid);
+            
             if (provider === 'dingtalk') {
-                return templates.map(t => ({ id: t.reportCode, name: t.name }));
+                return templates.map(t => ({
+                    id: t.reportCode,
+                    name: t.name,
+                    fields: t.fields.map((field, index) => {
+                        const fieldType = this.mapDingTalkFieldType(field.type);
+                        const baseField = {
+                            id: `field_${t.reportCode}_${index}`,
+                            label: field.fieldName,
+                            type: fieldType,
+                            placeholder: `请输入${field.fieldName}...`,
+                        };
+                        // Add other field properties as needed
+                        return baseField;
+                    })
+                }));
             }
-            return templates; // 飞书的格式已经是 { id, name }
+            
+            // Handle feishu templates
+            return templates.map(t => ({
+                id: t.id,
+                name: t.name,
+                fields: (t.fields || []).map((field, index) => ({
+                    id: `field_${t.id}_${index}`,
+                    label: field.title,
+                    type: this.mapFeishuFieldType(field.type),
+                    placeholder: `请输入${field.title}...`,
+                }))
+            }));
+
         } catch (error) {
             console.error(`获取模板列表失败:`, error);
             throw new Error(`获取模板列表失败: ${error.message}`);
         }
     }
 
-    // 获取模板详情
-    async getTemplateDetail(templateName, templateId) {
-        const provider = this.getProvider();
-        if (!provider) throw new Error("用户未登录");
-        const user = authService.getUser();
 
-        try {
-            const detail = await graphqlService.getTemplateDetail(provider, templateName, user?.id);
-            
-            // 统一数据格式
-            if (provider === 'dingtalk') {
-                if (!detail) {
-                    throw new Error('获取钉钉模板详情失败: 响应为空');
-                }
-                return {
-                    id: templateId, // 钉钉详情接口不返回id，我们从列表传入
-                    name: detail.name,
-                    fields: detail.fields.map((field, index) => {
-                        const fieldType = this.mapDingTalkFieldType(field.type);
-                        const baseField = {
-                            id: `field_${templateId}_${index}`,
-                            label: field.fieldName,
-                            type: fieldType,
-                            placeholder: `请输入${field.fieldName}...`,
-                        };
-                         if (fieldType === 'dropdown' || fieldType === 'multiSelect') {
-                            baseField.options = field.options || [
-                                { value: 'option1', text: '选项1' },
-                                { value: 'option2', text: '选项2' },
-                            ];
-                        }
-                        if (fieldType === 'image') {
-                            baseField.maxCount = 99;
-                            baseField.maxSize = 20 * 1024 * 1024;
-                        }
-                         if (fieldType === 'attachment') {
-                            baseField.maxCount = 9;
-                            baseField.maxSize = 50 * 1024 * 1024;
-                        }
-                        return baseField;
-                    })
-                };
-            }
-    
-            // 飞书的详情返回的是一个对象
-            return {
-                id: detail.id,
-                name: detail.name,
-                fields: (detail.form_schema || []).map((field, index) => ({
-                    id: `field_${detail.id}_${index}`,
-                    label: field.name,
-                    type: this.mapFeishuFieldType(field.type),
-                    placeholder: `请输入${field.name}...`,
-                }))
-            };
-        } catch (error) {
-            console.error(`获取模板详情失败:`, error);
-            throw new Error(`获取模板详情失败: ${error.message}`);
-        }
-    }
 
     // 获取报告列表
     async getReports(params) {
