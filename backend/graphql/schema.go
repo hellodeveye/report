@@ -8,7 +8,6 @@ import (
 	"github.com/hellodeveye/report/graphql/types"
 	"github.com/hellodeveye/report/internal/config"
 	"github.com/hellodeveye/report/pkg/dingtalk"
-	"github.com/hellodeveye/report/pkg/feishu"
 )
 
 func SetupGraphQLSchema() *graphql.Schema {
@@ -17,14 +16,8 @@ func SetupGraphQLSchema() *graphql.Schema {
 	dingtalkClient := dingtalk.NewClient(dingTalkConfig)
 	dingtalkReportService := dingtalk.NewReportService(dingtalkClient)
 
-	// Feishu Services
-	feishuConfig := config.GetFeishuConfig()
-	feishuClient := feishu.NewClient(feishuConfig)
-	feishuReportService := feishu.NewReportService(feishuClient)
-
 	// Initialize resolvers
 	resolvers.InitDingTalkResolvers(dingtalkReportService)
-	resolvers.InitFeishuResolvers(feishuReportService)
 
 	rootQuery := graphql.ObjectConfig{Name: "RootQuery", Fields: graphql.Fields{
 		"dingtalkTemplates": &graphql.Field{
@@ -45,26 +38,6 @@ func SetupGraphQLSchema() *graphql.Schema {
 				"size":          &graphql.ArgumentConfig{Type: graphql.Int, DefaultValue: 20},
 			},
 			Resolve: resolvers.GetDingTalkReportsResolver,
-		},
-		"feishuTemplates": &graphql.Field{
-			Type:    graphql.NewList(types.FeishuTemplateType),
-			Resolve: resolvers.GetFeishuTemplatesResolver,
-		},
-		"feishuTemplateDetail": &graphql.Field{
-			Type: types.FeishuRuleType,
-			Args: graphql.FieldConfigArgument{
-				"name": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
-			},
-			Resolve: resolvers.GetFeishuTemplateDetailResolver,
-		},
-		"feishuReports": &graphql.Field{
-			Type: types.FeishuReportListType,
-			Args: graphql.FieldConfigArgument{
-				"rule_id":    &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
-				"start_time": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
-				"end_time":   &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
-			},
-			Resolve: resolvers.GetFeishuReportsResolver,
 		},
 	}}
 

@@ -114,3 +114,13 @@ func (h *DingTalkHandler) ExchangeCode(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Printf("DingTalk authentication successful for user: %s\n", user.Name)
 }
+
+func (h *DingTalkHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	// 由于JWT是无状态的，退出登录主要在前端处理（删除本地存储的token）
+	// 这里可以添加token黑名单逻辑，或者其他服务端清理逻辑
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Logged out successfully",
+	})
+}

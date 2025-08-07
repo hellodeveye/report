@@ -1,41 +1,5 @@
 package models
 
-// FeishuRule 飞书报告规则
-type FeishuRule struct {
-	RuleID   string `json:"rule_id"`
-	RuleName string `json:"rule_name"`
-	// 可以根据实际API响应添加更多字段
-}
-
-// FeishuRulesResponse 飞书规则查询响应
-type FeishuRulesResponse struct {
-	Code int    `json:"code"`
-	Msg  string `json:"msg"`
-	Data struct {
-		Items []FeishuRule `json:"items"`
-		Total int          `json:"total"`
-	} `json:"data"`
-}
-
-// FeishuAuthResponse 飞书认证响应
-type FeishuAuthResponse struct {
-	Code int    `json:"code"`
-	Msg  string `json:"msg"`
-	Data struct {
-		AccessToken string `json:"access_token"`
-		ExpiresIn   int    `json:"expires_in"`
-		TokenType   string `json:"token_type"`
-	} `json:"data"`
-}
-
-// FeishuConfig 飞书配置
-type FeishuConfig struct {
-	AppID       string
-	AppSecret   string
-	RedirectURI string
-	BaseURL     string
-}
-
 // User 用户信息
 type User struct {
 	OpenID   string   `json:"open_id"`
@@ -53,23 +17,6 @@ type AuthToken struct {
 	Token     string `json:"token"`
 	ExpiresAt int64  `json:"expires_at"`
 	User      User   `json:"user"`
-}
-
-// FeishuOAuthTokenResponse 飞书OAuth token响应
-type FeishuOAuthTokenResponse struct {
-	AccessToken      string `json:"access_token"`
-	TokenType        string `json:"token_type"`
-	ExpiresIn        int    `json:"expires_in"`
-	RefreshToken     string `json:"refresh_token"`
-	RefreshExpiresIn int    `json:"refresh_expires_in"`
-	Scope            string `json:"scope"`
-}
-
-// FeishuUserInfoResponse 飞书用户信息响应
-type FeishuUserInfoResponse struct {
-	Code int    `json:"code"`
-	Msg  string `json:"msg"`
-	Data User   `json:"data"`
 }
 
 // DingTalkConfig 钉钉配置

@@ -4,17 +4,11 @@ import (
 	"fmt"
 
 	"github.com/graphql-go/graphql"
-	"github.com/hellodeveye/report/internal/models"
+	"github.com/hellodeveye/report/graphql/types"
 	"github.com/hellodeveye/report/pkg/auth"
 	"github.com/hellodeveye/report/pkg/dingtalk"
-	"github.com/hellodeveye/report/pkg/feishu"
 )
 
-var feishuReportService *feishu.ReportService
-
-func InitFeishuResolvers(service *feishu.ReportService) {
-	feishuReportService = service
-}
 func GetDingTalkTemplatesResolver(p graphql.ResolveParams) (interface{}, error) {
 	userId, _ := p.Args["userId"].(string)
 	templates, err := dingtalkReportService.GetTemplates(userId)
@@ -49,23 +43,27 @@ func GetDingTalkReportsResolver(p graphql.ResolveParams) (interface{}, error) {
 	return reports.Result, nil
 }
 
-func GetFeishuTemplatesResolver(p graphql.ResolveParams) (interface{}, error) {
-	return []models.TemplateInfo{
-		{ID: "monthly_report", Name: "工作月报"},
-		{ID: "daily_report", Name: "技术部-工作日报"},
-		{ID: "daily_scrum", Name: "每日站会"},
-		{ID: "complex_template", Name: "复杂模板"},
-	}, nil
+var dingtalkReportService *dingtalk.ReportService
+
+func InitDingTalkResolvers(service *dingtalk.ReportService) {
+	dingtalkReportService = service
+	types.TemplateType.AddFieldConfig("detail", &graphql.Field{
+		Type: types.TemplateDetailType,
+		Args: graphql.FieldConfigArgument{
+			"userId": &graphql.ArgumentConfig{
+				Type: graphql.NewNonNull(graphql.String),
+			},
+		},
+		Resolve: GetTemplateDetailResolver,
+	})
 }
 
-func GetFeishuTemplateDetailResolver(p graphql.ResolveParams) (interface{}, error) {
-	name, _ := p.Args["name"].(string)
-	return feishuReportService.QueryRules(name)
-}
-
-func GetFeishuReportsResolver(p graphql.ResolveParams) (interface{}, error) {
-	ruleID, _ := p.Args["rule_id"].(string)
-	startTime, _ := p.Args["start_time"].(string)
-	endTime, _ := p.Args["end_time"].(string)
-	return feishuReportService.QueryReports(ruleID, startTime, endTime)
+func GetTemplateDetailResolver(p graphql.ResolveParams) (interface{}, error) {
+	template, _ := p.Source.(dingtalk.TemplateItem)
+	userId, _ := p.Args["userId"].(string)
+	templateDetail, err := dingtalkReportService.GetTemplateDetail(userId, template.Name)
+	if err != nil {
+		return nil, err
+	}
+	return templateDetail.Result, nil
 }

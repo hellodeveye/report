@@ -92,3 +92,10 @@ var TemplateType = graphql.NewObject(graphql.ObjectConfig{
 		"url":        &graphql.Field{Type: graphql.String},
 	},
 })
+var ReportContentInputType = graphql.NewInputObject(graphql.InputObjectConfig{
+	Name: "ReportContentInput",
+	Fields: graphql.InputObjectConfigFieldMap{
+		"key":   &graphql.InputObjectFieldConfig{Type: graphql.NewNonNull(graphql.String)},
+		"value": &graphql.InputObjectFieldConfig{Type: graphql.NewNonNull(graphql.String)},
+	},
+})

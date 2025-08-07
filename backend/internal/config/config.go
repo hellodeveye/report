@@ -6,21 +6,6 @@ import (
 	"github.com/hellodeveye/report/internal/models"
 )
 
-// GetFeishuConfig 获取飞书配置
-func GetFeishuConfig() *models.FeishuConfig {
-	return &models.FeishuConfig{
-		AppID:       getEnv("FEISHU_APP_ID", ""),
-		AppSecret:   getEnv("FEISHU_APP_SECRET", ""),
-		RedirectURI: getEnv("FEISHU_REDIRECT_URI", ""),
-		BaseURL:     getEnv("FEISHU_BASE_URL", "https://open.feishu.cn"),
-	}
-}
-
-// GetFeishuAccessToken 获取飞书访问令牌
-func GetFeishuAccessToken() string {
-	return getEnv("FEISHU_ACCESS_TOKEN", "")
-}
-
 // GetJWTSecret 获取JWT密钥
 func GetJWTSecret() string {
 	return getEnv("JWT_SECRET", "default-jwt-secret-change-in-production")
