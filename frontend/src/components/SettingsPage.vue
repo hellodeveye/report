@@ -1,6 +1,7 @@
 <script setup>
-import { ref, defineEmits, defineProps, onMounted, computed } from 'vue';
+import { ref, defineEmits, defineProps, onMounted, computed, watch } from 'vue';
 import { aiService, MODELS_CONFIG } from '../utils/aiUtils.js';
+import { themeService } from '../utils/themeService.js';
 
 const props = defineProps({
   currentUser: {
@@ -60,20 +61,29 @@ const selectedProviderModels = computed(() => {
 onMounted(() => {
   aiConfig.value = aiService.getSettings();
   activeTab.value = props.initialTab;
+  // 初始化暗黑模式
+  settings.value.darkMode = themeService.isDark();
 });
+
+watch(
+  () => settings.value.darkMode,
+  (isDark) => {
+    themeService.setTheme(isDark ? 'dark' : 'light');
+  }
+);
 </script>
 
 <template>
-  <div class="flex-grow flex flex-col overflow-hidden bg-white/50">
-    <div class="p-4 border-b border-white/30 flex-shrink-0 flex items-center">
-      <button @click="emit('close')" class="flex items-center text-sm font-semibold text-gray-600 hover:text-gray-800 transition-colors">
+  <div class="flex-grow flex flex-col overflow-hidden bg-white/50 dark:bg-gray-900/50">
+    <div class="p-4 border-b border-white/30 dark:border-gray-800 flex-shrink-0 flex items-center">
+      <button @click="emit('close')" class="flex items-center text-sm font-semibold text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-white transition-colors">
         <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
         返回主界面
       </button>
     </div>
     <div class="flex-grow flex flex-col md:flex-row overflow-hidden">
       <!-- Left: Tab navigation -->
-      <aside class="w-full md:w-56 flex-shrink-0 p-4 border-b md:border-r md:border-b-0 border-white/30">
+      <aside class="w-full md:w-56 flex-shrink-0 p-4 border-b md:border-r md:border-b-0 border-white/30 dark:border-gray-800">
         <nav class="flex space-x-2 md:space-x-0 md:flex-col md:space-y-2 -mx-2 px-2 md:mx-0 md:px-0 overflow-x-auto pb-2 md:pb-0">
           <button
             v-for="tab in tabs"
@@ -82,8 +92,8 @@ onMounted(() => {
             :class="[
               'flex-shrink-0 md:w-full flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors',
               activeTab === tab.id
-                ? 'bg-indigo-100/80 text-indigo-700 shadow-sm'
-                : 'text-gray-600 hover:bg-gray-500/10 hover:text-gray-800',
+                ? 'bg-indigo-100/80 text-indigo-700 shadow-sm dark:bg-indigo-500/20 dark:text-indigo-200'
+                : 'text-gray-600 hover:bg-gray-500/10 hover:text-gray-800 dark:text-gray-300 dark:hover:text-white',
             ]"
           >
             <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="tab.icon"></path></svg>
@@ -99,8 +109,8 @@ onMounted(() => {
             <div :key="activeTab">
               <!-- Account Settings -->
               <div v-if="activeTab === 'account'">
-                <h3 class="text-xl font-bold text-gray-800 mb-6">账户资料</h3>
-                <div class="bg-white/80 rounded-lg shadow p-6 md:p-8 border border-white/30">
+                <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-6">账户资料</h3>
+                <div class="bg-white/80 dark:bg-gray-800/60 rounded-lg shadow p-6 md:p-8 border border-white/30 dark:border-gray-700">
                   <div class="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6">
                     <!-- Avatar -->
                     <div class="flex-shrink-0">
@@ -115,22 +125,22 @@ onMounted(() => {
                     </div>
                     <!-- User Info -->
                     <div class="flex-grow text-center md:text-left">
-                      <h4 class="text-2xl font-bold text-gray-800">{{ props.currentUser?.name || '用户' }}</h4>
-                      <p class="text-gray-500">{{ props.currentUser?.email || '无可用邮箱' }}</p>
+                      <h4 class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ props.currentUser?.name || '用户' }}</h4>
+                      <p class="text-gray-500 dark:text-gray-300">{{ props.currentUser?.email || '无可用邮箱' }}</p>
                       <span v-if="props.currentUser?.provider" class="mt-2 inline-block px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                         钉钉用户
                       </span>
                     </div>
                   </div>
-                  <div class="mt-8 border-t border-gray-200/60 pt-6">
+                  <div class="mt-8 border-t border-gray-200/60 dark:border-gray-700 pt-6">
                     <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                       <div class="col-span-1">
-                        <dt class="text-sm font-medium text-gray-500">UserID</dt>
-                        <dd class="mt-1 text-sm text-gray-900">{{ props.currentUser?.userid || '--' }}</dd>
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-300">UserID</dt>
+                        <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ props.currentUser?.userid || '--' }}</dd>
                       </div>
                       <div class="col-span-1">
-                        <dt class="text-sm font-medium text-gray-500">OpenID</dt>
-                        <dd class="mt-1 text-sm text-gray-900">{{ props.currentUser?.open_id || '--' }}</dd>
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-300">OpenID</dt>
+                        <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ props.currentUser?.open_id || '--' }}</dd>
                       </div>
                     </dl>
                   </div>
@@ -139,13 +149,13 @@ onMounted(() => {
 
               <!-- Model Settings -->
               <div v-if="activeTab === 'model'">
-                <h3 class="text-xl font-bold text-gray-800 mb-6">模型设置</h3>
+                <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-6">模型设置</h3>
                 <div class="space-y-6">
-                  <div class="bg-white/80 rounded-lg shadow p-6 border border-white/30 space-y-4">
+                  <div class="bg-white/80 dark:bg-gray-800/60 rounded-lg shadow p-6 border border-white/30 dark:border-gray-700 space-y-4">
                     <!-- AI Provider -->
                     <div>
-                      <label for="ai-provider" class="block text-sm font-semibold text-gray-700 mb-1">AI 提供商</label>
-                      <select id="ai-provider" v-model="aiConfig.provider" @change="onProviderChange" class="form-input">
+                      <label for="ai-provider" class="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">AI 提供商</label>
+                      <select id="ai-provider" v-model="aiConfig.provider" @change="onProviderChange" class="form-input dark:bg-gray-900/60 dark:border-gray-700 dark:text-gray-100">
                         <option v-for="(config, provider) in MODELS_CONFIG" :key="provider" :value="provider">
                           {{ config.label }}
                         </option>
@@ -153,13 +163,13 @@ onMounted(() => {
                     </div>
                     <!-- API Key -->
                     <div>
-                      <label for="api-key" class="block text-sm font-semibold text-gray-700 mb-1">API Key</label>
-                      <input id="api-key" type="password" v-model="aiConfig.apiKey" placeholder="请输入您的 API Key" class="form-input" />
+                      <label for="api-key" class="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">API Key</label>
+                      <input id="api-key" type="password" v-model="aiConfig.apiKey" placeholder="请输入您的 API Key" class="form-input dark:bg-gray-900/60 dark:border-gray-700 dark:text-gray-100" />
                     </div>
                     <!-- Model Selection -->
                     <div>
-                      <label for="ai-model" class="block text-sm font-semibold text-gray-700 mb-1">模型</label>
-                      <select id="ai-model" v-model="aiConfig.model" class="form-input">
+                      <label for="ai-model" class="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">模型</label>
+                      <select id="ai-model" v-model="aiConfig.model" class="form-input dark:bg-gray-900/60 dark:border-gray-700 dark:text-gray-100">
                         <option v-for="model in selectedProviderModels" :key="model.id" :value="model.id">
                           {{ model.name }}
                         </option>
@@ -171,17 +181,17 @@ onMounted(() => {
               
               <!-- Appearance Settings -->
               <div v-if="activeTab === 'appearance'">
-                <h3 class="text-xl font-bold text-gray-800 mb-6">外观</h3>
+                <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-6">外观</h3>
                 <div class="space-y-6">
-                  <div class="bg-white/80 rounded-lg shadow p-6 border border-white/30">
+                  <div class="bg-white/80 dark:bg-gray-800/60 rounded-lg shadow p-6 border border-white/30 dark:border-gray-700">
                     <div class="flex flex-col md:flex-row items-start md:items-center justify-between">
                       <div>
-                        <p class="font-semibold text-gray-700">深色模式</p>
-                        <p class="text-sm text-gray-500 mt-1">为界面启用或禁用深色主题。</p>
+                        <p class="font-semibold text-gray-700 dark:text-gray-200">深色模式</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-300 mt-1">为界面启用或禁用深色主题。</p>
                       </div>
                       <label class="relative inline-flex items-center cursor-pointer mt-3 md:mt-0">
                         <input type="checkbox" v-model="settings.darkMode" class="sr-only peer">
-                        <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-indigo-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                        <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-focus:ring-4 peer-focus:ring-indigo-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                       </label>
                     </div>
                   </div>
@@ -190,28 +200,28 @@ onMounted(() => {
               
               <!-- Notifications Settings -->
               <div v-if="activeTab === 'notifications'">
-                <h3 class="text-xl font-bold text-gray-800 mb-6">通知</h3>
+                <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-6">通知</h3>
                 <div class="space-y-6">
-                  <div class="bg-white/80 rounded-lg shadow p-6 border border-white/30 space-y-4 divide-y divide-gray-200/50">
+                  <div class="bg-white/80 dark:bg-gray-800/60 rounded-lg shadow p-6 border border-white/30 dark:border-gray-700 space-y-4 divide-y divide-gray-200/50 dark:divide-gray-700/80">
                     <div class="flex flex-col md:flex-row items-start md:items-center justify-between pt-4 first:pt-0">
                        <div>
-                        <p class="font-semibold text-gray-700">邮件通知</p>
-                        <p class="text-sm text-gray-500 mt-1">接收关于账户活动和更新的邮件。</p>
+                        <p class="font-semibold text-gray-700 dark:text-gray-200">邮件通知</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-300 mt-1">接收关于账户活动和更新的邮件。</p>
                       </div>
                       <label class="relative inline-flex items-center cursor-pointer mt-3 md:mt-0">
                         <input type="checkbox" v-model="settings.notifications.email" class="sr-only peer">
-                        <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-indigo-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                         <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-focus:ring-4 peer-focus:ring-indigo-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                       </label>
                     </div>
                     <div class="flex flex-col md:flex-row items-start md:items-center justify-between pt-4 first:pt-0">
                       <div>
-                        <p class="font-semibold text-gray-400">推送通知</p>
-                        <p class="text-sm text-gray-400 mt-1">通过您的设备接收实时推送通知。</p>
+                        <p class="font-semibold text-gray-400 dark:text-gray-400">推送通知</p>
+                        <p class="text-sm text-gray-400 dark:text-gray-400 mt-1">通过您的设备接收实时推送通知。</p>
                       </div>
                       <label class="relative inline-flex items-center cursor-pointer mt-3 md:mt-0">
                         <input type="checkbox" v-model="settings.notifications.push" class="sr-only peer" disabled>
-                        <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600 cursor-not-allowed"></div>
-                        <span class="ml-3 text-sm font-medium text-gray-400">（即将推出）</span>
+                         <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600 cursor-not-allowed"></div>
+                         <span class="ml-3 text-sm font-medium text-gray-400 dark:text-gray-400">（即将推出）</span>
                       </label>
                     </div>
                   </div>
@@ -220,13 +230,13 @@ onMounted(() => {
 
               <!-- Language Settings -->
               <div v-if="activeTab === 'language'">
-                <h3 class="text-xl font-bold text-gray-800 mb-6">语言</h3>
+                <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-6">语言</h3>
                  <div class="space-y-6">
-                  <div class="bg-white/80 rounded-lg shadow p-6 border border-white/30">
+                  <div class="bg-white/80 dark:bg-gray-800/60 rounded-lg shadow p-6 border border-white/30 dark:border-gray-700">
                     <div>
-                      <p class="font-semibold text-gray-700 mb-1">界面语言</p>
-                      <p class="text-sm text-gray-500 mb-4">选择您希望在应用中显示的语言。</p>
-                      <select v-model="settings.language" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white/80">
+                      <p class="font-semibold text-gray-700 dark:text-gray-200 mb-1">界面语言</p>
+                      <p class="text-sm text-gray-500 dark:text-gray-300 mb-4">选择您希望在应用中显示的语言。</p>
+                      <select v-model="settings.language" class="w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white/80 dark:bg-gray-900/60 dark:text-gray-100">
                         <option value="zh-cn">简体中文</option>
                         <option value="en" disabled>English (即将推出)</option>
                       </select>
@@ -236,7 +246,7 @@ onMounted(() => {
               </div>
               
               <!-- Save Button -->
-              <div class="mt-10 pt-6 border-t border-gray-200/60 flex justify-end">
+              <div class="mt-10 pt-6 border-t border-gray-200/60 dark:border-gray-700 flex justify-end">
                 <button @click="saveSettings" class="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors">
                   保存设置
                 </button>

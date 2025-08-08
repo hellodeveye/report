@@ -552,8 +552,8 @@ const openSettings = () => {
   
   <LoginPage v-else-if="!isAuthenticated" />
 
-  <div v-else class="min-h-screen w-full flex items-center justify-center p-4 bg-gray-900/10">
-    <div class="w-full max-w-screen-2xl h-[90vh] bg-white/60 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-white/30 relative">
+  <div v-else class="min-h-screen w-full flex items-center justify-center p-4 bg-gray-900/10 dark:bg-gray-900">
+    <div class="w-full max-w-screen-2xl h-[90vh] bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-white/30 dark:border-gray-700 relative">
       
       <SettingsPage v-if="showSettingsPage" :current-user="currentUser" :initial-tab="initialSettingsTab" @close="showSettingsPage = false" @notify="(n) => addNotification(n.title, n.description, n.type)" />
       
@@ -565,8 +565,8 @@ const openSettings = () => {
           </div>
         </div>
         
-        <header class="flex-shrink-0 flex items-center justify-between border-b border-white/30 shadow-sm z-10 p-4">
-          <h1 class="text-xl font-bold text-gray-800">钉钉报告助手</h1>
+        <header class="flex-shrink-0 flex items-center justify-between border-b border-white/30 dark:border-gray-700 shadow-sm z-10 p-4">
+          <h1 class="text-xl font-bold text-gray-800 dark:text-gray-100">钉钉报告助手</h1>
           
           <div class="flex items-center space-x-3">
             <div class="relative" ref="profileMenuNode">
@@ -574,14 +574,14 @@ const openSettings = () => {
                 <img v-if="currentUser?.avatar_url" :src="currentUser.avatar_url" :alt="currentUser.name" class="h-8 w-8 rounded-full object-cover border border-gray-200">
                 <span v-else class="inline-flex items-center justify-center h-8 w-8 rounded-full text-white font-bold text-sm bg-blue-500">{{ currentUser?.name?.charAt(0)?.toUpperCase() || 'U' }}</span>
                 <div class="text-left">
-                  <div class="text-sm font-semibold text-gray-700">{{ currentUser?.name || '用户' }}</div>
-                  <div class="text-xs text-gray-500">钉钉用户</div>
+                  <div class="text-sm font-semibold text-gray-700 dark:text-gray-100">{{ currentUser?.name || '用户' }}</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-300">钉钉用户</div>
                 </div>
                 <svg class="w-4 h-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
               </button>
               
               <transition enter-active-class="transition ease-out duration-200" enter-from-class="transform opacity-0 scale-95" enter-to-class="transform opacity-100 scale-100" leave-active-class="transition ease-in duration-75" leave-from-class="transform opacity-100 scale-100" leave-to-class="transform opacity-0 scale-95">
-                <div v-if="isProfileMenuOpen" class="absolute right-0 mt-2 w-64 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg py-2 z-20 border border-white/30">
+                <div v-if="isProfileMenuOpen" class="absolute right-0 mt-2 w-64 bg-white/90 dark:bg-gray-800/95 backdrop-blur-sm rounded-lg shadow-lg py-2 z-20 border border-white/30 dark:border-gray-700">
                   <div class="px-4 py-3 border-b border-gray-200/50">
                     <div class="flex items-center space-x-3 min-w-0">
                       <img v-if="currentUser?.avatar_url" :src="currentUser.avatar_url" :alt="currentUser.name" class="h-10 w-10 rounded-full object-cover border border-gray-200">
@@ -589,15 +589,15 @@ const openSettings = () => {
                         {{ currentUser?.name?.charAt(0)?.toUpperCase() || 'U' }}
                       </span>
                       <div class="flex-1 min-w-0">
-                        <div class="text-sm font-semibold text-gray-900 truncate">{{ currentUser?.name || '用户' }}</div>
-                        <div class="text-xs text-gray-500 break-all max-w-[180px]" :title="currentUser?.email || '--'">
+                        <div class="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{{ currentUser?.name || '用户' }}</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-300 break-all max-w-[180px]" :title="currentUser?.email || '--'">
                           {{ currentUser?.email || '--' }}
                         </div>
                       </div>
                     </div>
                   </div>
                   <div class="py-1">
-                    <a href="#" @click.prevent="showSettingsPage = true; isProfileMenuOpen = false" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-white/50 transition-colors">
+                    <a href="#" @click.prevent="showSettingsPage = true; isProfileMenuOpen = false" class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-white/50 dark:hover:bg-gray-700/30 transition-colors">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-3 text-gray-400">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
@@ -605,9 +605,9 @@ const openSettings = () => {
                       <span>设置</span>
                     </a>
                   </div>
-                  <div class="border-t border-gray-200/50"></div>
+                  <div class="border-t border-gray-200/50 dark:border-gray-700"></div>
                   <div class="py-1">
-                    <a href="#" @click.prevent="handleLogout" class="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                    <a href="#" @click.prevent="handleLogout" class="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                       <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                       <span>退出登录</span>
                     </a>
@@ -619,27 +619,27 @@ const openSettings = () => {
         </header>
         
         <main class="flex-grow flex flex-col overflow-hidden">
-          <section class="flex-shrink-0 border-b border-white/30 p-4">
+          <section class="flex-shrink-0 border-b border-white/30 dark:border-gray-700 p-4">
               <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                   <div>
-                      <label for="source_template" class="text-sm font-medium text-gray-700">日志模板:</label>
-                      <select id="source_template" v-model="selectedSourceTemplateId" class="mt-1 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white/80">
+                      <label for="source_template" class="text-sm font-medium text-gray-700 dark:text-gray-200">日志模板:</label>
+                      <select id="source_template" v-model="selectedSourceTemplateId" class="mt-1 w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white/80 dark:bg-gray-900/60 dark:text-gray-100">
                           <option v-for="template in templates" :key="template.id" :value="template.id">{{ template.name }}</option>
                       </select>
                   </div>
                   <div>
-                    <label for="date" class="text-sm font-medium text-gray-700">报告周期:</label>
-                    <VueTailwindDatepicker id="date" v-model="dateValue" i18n="zh-cn" placeholder="选择日期范围" :shortcuts="datePickerShortcuts" :options="datePickerOptions" use-range :formatter="{ date: 'YYYY-MM-DD', month: 'MMM' }" class="mt-1 w-full" />
+                    <label for="date" class="text-sm font-medium text-gray-700 dark:text-gray-200">报告周期:</label>
+                    <VueTailwindDatepicker id="date" v-model="dateValue" i18n="zh-cn" placeholder="选择日期范围" :shortcuts="datePickerShortcuts" :options="datePickerOptions" use-range :formatter="{ date: 'YYYY-MM-DD', month: 'MMM' }" class="mt-1 w-full" input-classes="w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white/80 dark:bg-gray-900/60 dark:text-gray-100" />
                   </div>
                   <div>
-                      <label for="template" class="text-sm font-medium text-gray-700">生成模板</label>
-                      <select id="template" v-model="selectedTemplateId" class="mt-1 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white/80">
+                      <label for="template" class="text-sm font-medium text-gray-700 dark:text-gray-200">生成模板</label>
+                      <select id="template" v-model="selectedTemplateId" class="mt-1 w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white/80 dark:bg-gray-900/60 dark:text-gray-100">
                           <option v-for="template in templates" :key="template.id" :value="template.id">{{ template.name }}</option>
                       </select>
                   </div>
                   <div class="md:col-span-2 flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2">
-                    <button @click="getReports" class="w-full flex items-center justify-center px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-white/30 text-gray-800 backdrop-blur-sm border border-white/40 shadow-lg hover:bg-white/50 hover:text-gray-900 focus:outline-none">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 mr-2">
+                    <button @click="getReports" class="w-full flex items-center justify-center px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-gradient-to-br from-indigo-500/15 to-blue-500/15 text-indigo-700 dark:text-indigo-200 backdrop-blur-sm border border-indigo-500/30 dark:border-indigo-400/30 shadow-md hover:from-indigo-500/25 hover:to-blue-500/25 hover:shadow-indigo-500/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 mr-2 text-indigo-600 dark:text-indigo-300">
                         <path fill-rule="evenodd" d="M10.5 3.75a6.75 6.75 0 1 0 0 13.5 6.75 6.75 0 0 0 0-13.5ZM2.25 10.5a8.25 8.25 0 1 1 14.59 5.28l4.69 4.69a.75.75 0 1 1-1.06 1.06l-4.69-4.69A8.25 8.25 0 0 1 2.25 10.5Z" clip-rule="evenodd" />
                       </svg>
                       获取报告
@@ -648,7 +648,7 @@ const openSettings = () => {
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.572L16.5 21.75l-.398-1.178a3.375 3.375 0 00-2.456-2.456L12.5 18l1.178-.398a3.375 3.375 0 002.456-2.456L16.5 14.25l.398 1.178a3.375 3.375 0 002.456 2.456L20.25 18l-1.178.398a3.375 3.375 0 00-2.456 2.456z" /></svg>
                       生成草稿
                     </button>
-                    <button @click="sendReport" class="w-full flex items-center justify-center px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-blue-500/20 text-blue-800 backdrop-blur-sm border border-blue-500/30 shadow-lg hover:bg-blue-500/40 hover:text-blue-900 focus:outline-none">
+                    <button @click="sendReport" class="w-full flex items-center justify-center px-4 py-2 rounded-lg font-semibold transition-all duration-300 bg-blue-600 text-white backdrop-blur-sm border border-transparent shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg>
                       发送报告
                     </button>
@@ -657,9 +657,9 @@ const openSettings = () => {
           </section>
           
           <div class="flex-grow md:grid md:grid-cols-2 gap-4 p-4 overflow-y-auto custom-scrollbar space-y-4 md:space-y-0">
-              <section class="bg-white/50 backdrop-blur-sm rounded-lg shadow-md border border-white/20 md:flex md:flex-col md:overflow-hidden">
-                  <div class="flex items-center justify-between p-4 border-b border-white/20">
-                    <h2 class="text-lg font-semibold">报告内容</h2>
+              <section class="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-lg shadow-md border border-white/20 dark:border-gray-700 md:flex md:flex-col md:overflow-hidden">
+                  <div class="flex items-center justify-between p-4 border-b border-white/20 dark:border-gray-700">
+                    <h2 class="text-lg font-semibold dark:text-gray-100">报告内容</h2>
                     <div class="relative flex-shrink-0" ref="contentMenuNode">
                       <button @click="isContentMenuOpen = !isContentMenuOpen" class="p-2 rounded-full text-gray-500 hover:bg-gray-500/10 hover:text-gray-800 focus:outline-none transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -668,8 +668,8 @@ const openSettings = () => {
                       </button>
                       <transition enter-active-class="transition ease-out duration-100" enter-from-class="transform opacity-0 scale-95" enter-to-class="transform opacity-100 scale-100" leave-active-class="transition ease-in duration-75" leave-from-class="transform opacity-100 scale-100" leave-to-class="transform opacity-0 scale-95">
                         <div v-if="isContentMenuOpen" class="absolute right-0 top-full mt-2 w-48 bg-white/90 backdrop-blur-sm rounded-md shadow-lg py-1 z-20 border border-white/30">
-                          <a href="#" @click.prevent="exportContent" class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-500/10 transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-3 text-gray-500">
+                          <a href="#" @click.prevent="exportContent" class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-500/10 dark:hover:bg-gray-700/30 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-3 text-gray-500 dark:text-gray-300">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9.75v6.75m0 0l-3-3m3 3l3-3m-8.25 6a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
                             </svg>
                             <span>导出</span>
@@ -679,22 +679,22 @@ const openSettings = () => {
                     </div>
                   </div>
                   <div class="p-4 space-y-2 custom-scrollbar md:overflow-y-auto md:flex-grow">
-                      <div v-if="sourceReports.length === 0" class="text-gray-500 text-center pt-10">报告内容将在此处显示。</div>
-                      <div v-for="report in sourceReports" :key="report.id" class="border rounded-md">
-                          <div @click="toggleReportDetail(report)" class="p-3 flex justify-between items-center cursor-pointer hover:bg-gray-50">
-                              <h3 class="font-semibold">{{ report.title }}</h3>
+                      <div v-if="sourceReports.length === 0" class="text-gray-500 dark:text-gray-300 text-center pt-10">报告内容将在此处显示。</div>
+                      <div v-for="report in sourceReports" :key="report.id" class="rounded-lg border border-gray-200/40 dark:border-gray-700/60 bg-white/5 dark:bg-gray-700/20 shadow-sm">
+                           <div @click="toggleReportDetail(report)" class="p-3 flex justify-between items-center cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-700/40">
+                               <h3 class="font-semibold dark:text-gray-100">{{ report.title }}</h3>
                               <svg class="w-5 h-5 transition-transform" :class="{'rotate-180': !report.isCollapsed}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
                           </div>
-                          <div v-if="!report.isCollapsed" class="p-4 border-t border-white/20 prose max-w-none text-sm">
+                           <div v-if="!report.isCollapsed" class="p-4 border-t border-gray-200/30 dark:border-gray-700/60 prose max-w-none text-sm">
                             <TiptapViewer :content="report.fields.map(f => `<h3>${f.name}</h3><div>${f.value}</div>`).join('')" />
                           </div>
                       </div>
                   </div>
               </section>
 
-              <section class="bg-white/50 backdrop-blur-sm rounded-lg shadow-md border border-white/20 md:flex md:flex-col md:overflow-hidden">
-                  <div class="flex items-center justify-between p-4 border-b border-white/20">
-                    <h2 class="text-lg font-semibold">{{ currentTemplate?.name || '生成的草稿' }}</h2>
+              <section class="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-lg shadow-md border border-white/20 dark:border-gray-700 md:flex md:flex-col md:overflow-hidden">
+                  <div class="flex items-center justify-between p-4 border-b border-white/20 dark:border-gray-700">
+                    <h2 class="text-lg font-semibold dark:text-gray-100">{{ currentTemplate?.name || '生成的草稿' }}</h2>
                     <div class="relative flex-shrink-0" ref="actionMenuNode">
                       <button @click="isActionMenuOpen = !isActionMenuOpen" class="p-2 rounded-full text-gray-500 hover:bg-gray-500/10 hover:text-gray-800 focus:outline-none transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -703,8 +703,8 @@ const openSettings = () => {
                       </button>
                       <transition enter-active-class="transition ease-out duration-100" enter-from-class="transform opacity-0 scale-95" enter-to-class="transform opacity-100 scale-100" leave-active-class="transition ease-in duration-75" leave-from-class="transform opacity-100 scale-100" leave-to-class="transform opacity-0 scale-95">
                           <div v-if="isActionMenuOpen" class="absolute right-0 top-full mt-2 w-48 bg-white/90 backdrop-blur-sm rounded-md shadow-lg py-1 z-20 border border-white/30">
-                              <a href="#" @click.prevent="saveDraft" class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-500/10 transition-colors">
-                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-3 text-gray-500">
+                          <a href="#" @click.prevent="saveDraft" class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-500/10 dark:hover:bg-gray-700/30 transition-colors">
+                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-3 text-gray-500 dark:text-gray-300">
                                       <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                                   </svg>
                                   <span>保存草稿</span>
@@ -715,16 +715,16 @@ const openSettings = () => {
                   </div>
                    <div class="p-4 space-y-4 custom-scrollbar md:flex-grow md:overflow-y-auto">
                       <div v-if="currentTemplate" v-for="field in (currentTemplate.fields || [])" :key="field.id" class="space-y-2">
-                          <label :for="field.id" class="font-semibold text-gray-700">{{ field.label }}</label>
+                           <label :for="field.id" class="font-semibold text-gray-700 dark:text-gray-200">{{ field.label }}</label>
                            
                            <!-- Rich Text -->
                            <TiptapEditor v-if="field.type === 'tiptap'" v-model="formValues[field.id]" :placeholder="field.placeholder" @openSettings="openSettings" />
                            
                            <!-- Number -->
-                           <input v-else-if="field.type === 'number'" :id="field.id" type="number" v-model.number="formValues[field.id]" :placeholder="field.placeholder" class="form-input" />
+                           <input v-else-if="field.type === 'number'" :id="field.id" type="number" v-model.number="formValues[field.id]" :placeholder="field.placeholder" class="form-input dark:bg-gray-900/60 dark:border-gray-700 dark:text-gray-100" />
  
                            <!-- Dropdown -->
-                           <select v-else-if="field.type === 'dropdown'" :id="field.id" v-model="formValues[field.id]" class="form-input">
+                           <select v-else-if="field.type === 'dropdown'" :id="field.id" v-model="formValues[field.id]" class="form-input dark:bg-gray-900/60 dark:border-gray-700 dark:text-gray-100">
                                <option disabled value="">请选择</option>
                                <option v-for="opt in (field.options || [])" :key="opt.value" :value="opt.value">{{ opt.text }}</option>
                            </select>
@@ -738,10 +738,10 @@ const openSettings = () => {
                            </div>
                            
                            <!-- Address -->
-                           <textarea v-else-if="field.type === 'address'" :id="field.id" v-model="formValues[field.id]" :placeholder="field.placeholder" rows="3" class="form-input"></textarea>
+                           <textarea v-else-if="field.type === 'address'" :id="field.id" v-model="formValues[field.id]" :placeholder="field.placeholder" rows="3" class="form-input dark:bg-gray-900/60 dark:border-gray-700 dark:text-gray-100"></textarea>
  
                            <!-- DateTime -->
-                           <input v-else-if="field.type === 'datetime'" :id="field.id" type="datetime-local" v-model="formValues[field.id]" class="form-input" />
+                           <input v-else-if="field.type === 'datetime'" :id="field.id" type="datetime-local" v-model="formValues[field.id]" class="form-input dark:bg-gray-900/60 dark:border-gray-700 dark:text-gray-100" />
                            
                            <!-- Image Uploader -->
                            <div v-else-if="field.type === 'image'">
@@ -760,10 +760,10 @@ const openSettings = () => {
  
                            <!-- Attachment Uploader -->
                            <div v-else-if="field.type === 'attachment'">
-                              <button @click="triggerFileInput(field.id)" class="px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md hover:bg-gray-50/50">+ 添加附件</button>
-                              <p class="text-xs text-gray-500 mt-2">单个附件不超过 {{ formatFileSize(field.maxSize) }}，最多上传 {{ field.maxCount }} 个</p>
-                              <div class="mt-4 space-y-2">
-                                 <div v-for="file in (formValues[field.id] || [])" :key="file.id" class="flex items-center justify-between p-2 bg-gray-100/80 rounded-md">
+                               <button @click="triggerFileInput(field.id)" class="px-4 py-2 text-sm font-semibold border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-50/50 dark:hover:bg-gray-700/30">+ 添加附件</button>
+                               <p class="text-xs text-gray-500 dark:text-gray-300 mt-2">单个附件不超过 {{ formatFileSize(field.maxSize) }}，最多上传 {{ field.maxCount }} 个</p>
+                               <div class="mt-4 space-y-2">
+                                  <div v-for="file in (formValues[field.id] || [])" :key="file.id" class="flex items-center justify-between p-2 bg-gray-100/80 dark:bg-gray-700/40 rounded-md">
                                     <div class="flex items-center space-x-2">
                                        <svg class="h-6 w-6 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2-2H4a2 2 0 01-2-2V6z"></path></svg>
                                        <div>
@@ -771,7 +771,7 @@ const openSettings = () => {
                                          <p class="text-xs text-gray-500">{{ formatFileSize(file.size) }}</p>
                                        </div>
                                     </div>
-                                    <button @click="removeFile(field.id, file.id)" class="p-1 text-gray-500 hover:text-red-600">
+                                     <button @click="removeFile(field.id, file.id)" class="p-1 text-gray-500 dark:text-gray-300 hover:text-red-600">
                                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
                                     </button>
                                  </div>
@@ -790,7 +790,7 @@ const openSettings = () => {
                            </div>
 
                            <!-- Plain Text -->
-                           <input v-else :id="field.id" type="text" v-model="formValues[field.id]" :placeholder="field.placeholder" class="form-input" />
+                           <input v-else :id="field.id" type="text" v-model="formValues[field.id]" :placeholder="field.placeholder" class="form-input dark:bg-gray-900/60 dark:border-gray-700 dark:text-gray-100" />
                       </div>
                    </div>
               </section>

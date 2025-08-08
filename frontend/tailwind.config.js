@@ -2,6 +2,7 @@ const colors = require("tailwindcss/colors");
 
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: [
     "./index.html",
     "./src/**/*.{vue,js,ts,jsx,tsx}",
@@ -11,7 +12,7 @@ export default {
     extend: {
       colors: {
         "vtd-primary": colors.indigo, // Light mode Datepicker color - now matches button style
-        // "vtd-secondary": colors.indigo, // Dark mode Datepicker color
+        "vtd-secondary": colors.gray, // Dark mode Datepicker color palette
       },
     },
   },
