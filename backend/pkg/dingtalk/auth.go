@@ -28,10 +28,12 @@ func (s *AuthService) GenerateAuthURL() (string, string, error) {
 	state := fmt.Sprintf("%d", time.Now().UnixNano())
 
 	// 构建授权URL
-	authURL := fmt.Sprintf("https://login.dingtalk.com/oauth2/auth?redirect_uri=%s&response_type=code&client_id=%s&scope=openid corpid&state=%s&prompt=consent",
+	authURL := fmt.Sprintf("https://login.dingtalk.com/oauth2/auth?redirect_uri=%s&response_type=code&client_id=%s&scope=openid corpid&state=%s&prompt=consent&corpId=%s",
 		url.QueryEscape(s.config.RedirectURI),
 		s.config.AppKey,
-		state)
+		state,
+		s.config.CorpId,
+	)
 
 	return authURL, state, nil
 }

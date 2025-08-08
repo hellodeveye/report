@@ -266,6 +266,11 @@ const getReports = async () => {
       endDate.setHours(23, 59, 59, 999);
       params.end_time = Math.floor(endDate.getTime() / 1000);
     }
+    // 开始日期和结束日期不能为空
+    if (!params.start_time || !params.end_time) {
+      addNotification('请选择日期范围', '开始日期和结束日期不能为空', 'error');
+      return;
+    }
     
     sourceReports.value = await apiService.getReports(params, sourceTemplate.value);
     

@@ -41,7 +41,7 @@ class ApiService {
         if (!user) throw new Error("用户未登录");
 
         try {
-            const reportsData = await graphqlService.getReports(user.userid, params);
+            const reportsData = await graphqlService.getReports(params);
 
             if (!reportsData || !reportsData.data_list || !Array.isArray(reportsData.data_list)) {
                 console.warn('钉钉API返回的数据格式不正确:', reportsData);

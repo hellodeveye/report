@@ -39,7 +39,7 @@ const graphqlService = {
 
 
 
-  async getReports(provider, params) {
+  async getReports(params) {
     const query = gql`
       query GetDingTalkReports($template_name: String!, $start_time: Int!, $end_time: Int!, $cursor: Int, $size: Int) {
         dingtalkReports(template_name: $template_name, start_time: $start_time, end_time: $end_time, cursor: $cursor, size: $size) {

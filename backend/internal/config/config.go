@@ -14,6 +14,7 @@ func GetJWTSecret() string {
 // GetDingTalkConfig 获取钉钉配置
 func GetDingTalkConfig() *models.DingTalkConfig {
 	return &models.DingTalkConfig{
+		CorpId:      getEnv("DINGTALK_CORP_ID", ""),
 		AppKey:      getEnv("DINGTALK_APP_KEY", ""),
 		AppSecret:   getEnv("DINGTALK_APP_SECRET", ""),
 		RedirectURI: getEnv("DINGTALK_REDIRECT_URI", ""),

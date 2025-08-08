@@ -20,6 +20,7 @@ type AuthToken struct {
 
 // DingTalkConfig 钉钉配置
 type DingTalkConfig struct {
+	CorpId      string
 	AppKey      string
 	AppSecret   string
 	RedirectURI string
