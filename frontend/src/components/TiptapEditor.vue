@@ -1,6 +1,6 @@
 <template>
-  <div class="border border-gray-200 rounded-lg relative">
-    <div v-if="editor" class="flex items-center flex-wrap p-2 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+  <div class="border border-gray-200 dark:border-gray-700 rounded-lg relative">
+    <div v-if="editor" class="flex items-center flex-wrap p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-t-lg">
       <!-- History -->
       <button @click="editor.chain().focus().undo().run()" :disabled="!editor.can().undo()" class="toolbar-button">撤销</button>
       <button @click="editor.chain().focus().redo().run()" :disabled="!editor.can().redo()" class="toolbar-button">重做</button>
@@ -63,13 +63,13 @@
     
     <!-- AI 生成状态提示 -->
     <div v-if="isAiProcessing" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
-      <div class="flex items-center space-x-2 bg-white border border-gray-200 rounded-full px-3 py-1 shadow-sm">
+      <div class="flex items-center space-x-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full px-3 py-1 shadow-sm">
         <div class="flex space-x-1">
           <div class="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce opacity-90"></div>
           <div class="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce opacity-90" style="animation-delay: 0.1s"></div>
           <div class="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce opacity-90" style="animation-delay: 0.2s"></div>
         </div>
-        <span class="text-gray-600 text-sm font-medium">AI 生成中...</span>
+        <span class="text-gray-600 dark:text-gray-200 text-sm font-medium">AI 生成中...</span>
       </div>
     </div>
     
@@ -122,7 +122,7 @@ const editor = useEditor({
     }),
   ],
   editorProps: {
-    attributes: { class: 'prose max-w-none p-4 focus:outline-none min-h-[150px]' },
+    attributes: { class: 'prose max-w-none p-4 focus:outline-none min-h-[150px] text-gray-800 dark:text-gray-100' },
   },
   onUpdate: () => {
     const html = editor.value.getHTML();
@@ -256,14 +256,14 @@ watch(() => props.modelValue, (newValue) => {
 
 <style scoped>
 .toolbar-button {
-    @apply px-2 py-1 text-sm rounded transition-colors duration-200 m-0.5;
+    @apply px-2 py-1 text-sm rounded transition-colors duration-200 m-0.5 text-gray-700 dark:text-gray-200;
 }
-.toolbar-button:hover { @apply bg-gray-100; }
+.toolbar-button:hover { @apply bg-gray-100 dark:bg-gray-700; }
 .is-active { @apply bg-blue-500 text-white; }
 .toolbar-button:disabled { @apply opacity-40 cursor-not-allowed; }
 
 .divider {
-    @apply w-px h-5 bg-gray-200 mx-2;
+    @apply w-px h-5 bg-gray-200 dark:bg-gray-700 mx-2;
 }
 .tiptap { min-height: 150px; }
 

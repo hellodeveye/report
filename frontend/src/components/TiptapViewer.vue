@@ -1,5 +1,5 @@
 <template>
-  <div class="border border-gray-200 rounded-lg bg-gray-50/50 relative">
+  <div class="border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50/50 dark:bg-gray-800/40 relative">
     <EditorContent :editor="editor" />
   </div>
 </template>
@@ -35,7 +35,7 @@ const editor = useEditor({
   ],
   editorProps: {
     attributes: { 
-      class: 'prose max-w-none p-3 focus:outline-none min-h-[50px] text-sm' 
+      class: 'prose max-w-none p-3 focus:outline-none min-h-[50px] text-sm text-gray-800 dark:text-gray-100' 
     },
   },
 });

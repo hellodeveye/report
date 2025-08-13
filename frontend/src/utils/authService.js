@@ -51,7 +51,7 @@ class AuthService {
   }
 
   // 发起登录 - 支持多个提供商
-  async login(provider = 'feishu') {
+  async login(provider = 'dingtalk') {
     try {
       const response = await fetch(`${this.baseURL}/auth/${provider}/login`);
       if (!response.ok) {
@@ -100,7 +100,7 @@ class AuthService {
     const code = urlParams.get('code');
     const state = urlParams.get('state');
     const storedState = localStorage.getItem('oauth_state');
-    const provider = localStorage.getItem('oauth_provider') || 'feishu';
+    const provider = localStorage.getItem('oauth_provider') || 'dingtalk';
     
     if (!code) {
       throw new Error('No authorization code found');

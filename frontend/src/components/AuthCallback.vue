@@ -1,6 +1,6 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center p-4 bg-gray-900/10">
-    <div class="max-w-md w-full bg-white/60 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/30 p-8">
+  <div class="min-h-screen flex items-center justify-center p-4 bg-gray-900/10 dark:bg-gray-900">
+    <div class="max-w-md w-full bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/30 dark:border-gray-700 p-8">
       <div class="text-center">
         <!-- 加载状态 -->
         <div v-if="isProcessing" class="space-y-4">
@@ -10,8 +10,8 @@
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
           </div>
-          <h1 class="text-2xl font-bold text-gray-800 mb-2">正在处理登录</h1>
-          <p class="text-gray-600">请稍候，正在验证您的身份...</p>
+          <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">正在处理登录</h1>
+          <p class="text-gray-600 dark:text-gray-300">请稍候，正在验证您的身份...</p>
         </div>
 
         <!-- 成功状态 -->
@@ -21,10 +21,10 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
             </svg>
           </div>
-          <h1 class="text-2xl font-bold text-gray-800 mb-2">登录成功</h1>
-          <p class="text-gray-600 mb-4">欢迎回来，{{ userInfo?.name || '用户' }}！</p>
-          <p class="text-sm text-gray-500">使用{{ getProviderDisplayName(userInfo?.provider) }}账号登录</p>
-          <p class="text-sm text-gray-500">正在跳转到主页...</p>
+          <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">登录成功</h1>
+          <p class="text-gray-600 dark:text-gray-300 mb-4">欢迎回来，{{ userInfo?.name || '用户' }}！</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400">使用钉钉账号登录</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400">正在跳转到主页...</p>
         </div>
 
         <!-- 错误状态 -->
@@ -34,15 +34,15 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
           </div>
-          <h1 class="text-2xl font-bold text-gray-800 mb-2">登录失败</h1>
-          <p class="text-gray-600 mb-4">{{ errorMessage }}</p>
+          <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">登录失败</h1>
+          <p class="text-gray-600 dark:text-gray-300 mb-4">{{ errorMessage }}</p>
           
-          <div class="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
-            <p class="text-sm text-red-800">错误详情:</p>
-            <p class="text-xs text-red-600 break-all">{{ errorDetails }}</p>
+          <div class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md p-3 mb-4">
+            <p class="text-sm text-red-800 dark:text-red-300">错误详情:</p>
+            <p class="text-xs text-red-600 dark:text-red-300 break-all">{{ errorDetails }}</p>
           </div>
 
-          <button @click="retryLogin" class="w-full px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600">
+          <button @click="retryLogin" class="w-full px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
             重新登录
           </button>
         </div>
@@ -96,15 +96,5 @@ const retryLogin = () => {
   window.location.href = '/';
 };
 
-// 获取平台显示名称
-const getProviderDisplayName = (provider) => {
-  switch (provider) {
-    case 'feishu':
-      return '飞书';
-    case 'dingtalk':
-      return '钉钉';
-    default:
-      return '未知';
-  }
-};
+
 </script> 

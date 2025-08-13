@@ -17,3 +17,15 @@ body::before {
 @tailwind base;
 @tailwind components;
 @tailwind utilities; 
+
+/* 暗黑模式下微调全局文本/背景对比度 */
+.dark .form-input {
+  @apply bg-gray-900/60 border-gray-700 text-gray-100;
+}
+
+/* Tiptap Prose 默认在暗黑下维持浅色文字 */
+.dark .prose :where(p, h1, h2, h3, h4, h5, h6, li, strong, em, code) {
+  color: rgba(243,244,246,1); /* text-gray-100 */
+}
+.dark .prose a { color: #93c5fd; }
+.dark .prose code { @apply bg-gray-700 text-gray-100; }

@@ -8,10 +8,9 @@ services:
       - "8080:8080"
     environment:
       # It's better to use an .env file for secrets
-      - FEISHU_APP_ID=${FEISHU_APP_ID}
-      - FEISHU_APP_SECRET=${FEISHU_APP_SECRET}
-      - FEISHU_REDIRECT_URI=${FEISHU_REDIRECT_URI:-http://frontend:5173/auth/callback}
-      - FEISHU_BASE_URL=${FEISHU_BASE_URL}
+      - DINGTALK_APP_KEY=${DINGTALK_APP_KEY}
+      - DINGTALK_APP_SECRET=${DINGTALK_APP_SECRET}
+      - DINGTALK_REDIRECT_URI=${DINGTALK_REDIRECT_URI:-http://frontend:5173/auth/callback}
       - JWT_SECRET=${JWT_SECRET}
       - FRONTEND_URL=${FRONTEND_URL}
       - ENVIRONMENT=${ENVIRONMENT}
